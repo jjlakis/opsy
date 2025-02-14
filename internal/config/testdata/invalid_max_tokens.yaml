@@ -1,0 +1,3 @@
+anthropic:
+  api_key: test-key
+  max_tokens: 0

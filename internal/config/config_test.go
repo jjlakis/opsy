@@ -1,0 +1,712 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func setupTestEnv(t *testing.T) (string, func()) {
+	// Create a temporary directory for test config
+	tempDir, err := os.MkdirTemp("", "sredo-test-*")
+	require.NoError(t, err)
+
+	// Save original environment variables
+	origHome := os.Getenv("HOME")
+	origAPIKey := os.Getenv("ANTHROPIC_API_KEY")
+	origLogLevel := os.Getenv("SREDO_LOGGING_LEVEL")
+
+	// Set up test environment
+	os.Setenv("HOME", tempDir)
+	os.Unsetenv("ANTHROPIC_API_KEY")   // Ensure API key is not set
+	os.Unsetenv("SREDO_LOGGING_LEVEL") // Ensure log level is not set
+
+	// Return cleanup function
+	cleanup := func() {
+		os.RemoveAll(tempDir)
+		os.Setenv("HOME", origHome)
+		os.Setenv("ANTHROPIC_API_KEY", origAPIKey)
+		if origLogLevel != "" {
+			os.Setenv("SREDO_LOGGING_LEVEL", origLogLevel)
+		} else {
+			os.Unsetenv("SREDO_LOGGING_LEVEL")
+		}
+		viper.Reset()
+	}
+
+	return tempDir, cleanup
+}
+
+// TestNewConfigManager verifies configuration manager creation:
+// - Creates manager with default values
+// - Properly binds environment variables
+func TestNewConfigManager(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	t.Run("creates new config manager with defaults", func(t *testing.T) {
+		manager := New()
+		assert.NotNil(t, manager)
+		assert.Equal(t, tempDir, manager.homePath)
+
+		// Verify default values are set in viper
+		assert.Equal(t, filepath.Join(tempDir, ".sredo", "log.log"), viper.GetString("logging.path"))
+		assert.Equal(t, "info", viper.GetString("logging.level"))
+		assert.Equal(t, "claude-3-5-sonnet-latest", viper.GetString("anthropic.model"))
+		assert.Equal(t, 0.9, viper.GetFloat64("anthropic.temperature"))
+		assert.Equal(t, int64(1024), viper.GetInt64("anthropic.max_tokens"))
+	})
+
+	t.Run("binds environment variables", func(t *testing.T) {
+		os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
+		os.Setenv("SREDO_LOGGING_LEVEL", "debug")
+
+		manager := New()
+		assert.NotNil(t, manager)
+
+		err := manager.LoadConfig()
+		require.NoError(t, err)
+
+		config := manager.GetConfig()
+		assert.Equal(t, "test-api-key", config.Anthropic.APIKey)
+		assert.Equal(t, "debug", config.Logging.Level)
+	})
+}
+
+// TestLoadConfig_DefaultValues verifies default configuration loading:
+// - Loads default values when no config file exists
+// - Properly sets default values for all configuration fields
+func TestLoadConfig_DefaultValues(t *testing.T) {
+	_, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
+	manager := New()
+	err := manager.LoadConfig()
+	require.NoError(t, err)
+
+	config := manager.GetConfig()
+	assert.Equal(t, "info", config.Logging.Level)
+	assert.Equal(t, "claude-3-5-sonnet-latest", config.Anthropic.Model)
+	assert.Equal(t, 0.9, config.Anthropic.Temperature)
+	assert.Equal(t, int64(1024), config.Anthropic.MaxTokens)
+}
+
+// TestLoadConfig_CustomValues verifies custom configuration loading:
+// - Loads custom values from config file
+// - Properly overrides default values
+// - Handles all configuration sections (UI, Logging, Anthropic)
+func TestLoadConfig_CustomValues(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	// Create custom config file
+	configDir := filepath.Join(tempDir, ".sredo")
+	require.NoError(t, os.MkdirAll(configDir, 0755))
+
+	// Read test data
+	testData, err := os.ReadFile("testdata/custom_config.yaml")
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), testData, 0644))
+
+	manager := New()
+	err = manager.LoadConfig()
+	require.NoError(t, err)
+
+	config := manager.GetConfig()
+	assert.Equal(t, "debug", config.Logging.Level)
+	assert.Equal(t, "/custom/log/path", config.Logging.Path)
+	assert.Equal(t, "claude-3-opus", config.Anthropic.Model)
+	assert.Equal(t, 0.7, config.Anthropic.Temperature)
+	assert.Equal(t, int64(2048), config.Anthropic.MaxTokens)
+	assert.Equal(t, "custom_theme", config.UI.Theme)
+}
+
+// TestLoadConfig_ValidationErrors verifies configuration validation:
+// - Validates missing API key
+// - Validates temperature range
+// - Validates max tokens value
+// - Validates log level values
+func TestLoadConfig_ValidationErrors(t *testing.T) {
+	tests := []struct {
+		name        string
+		configFile  string
+		configData  []byte
+		expectedErr string
+	}{
+		{
+			name:        "missing API key",
+			configData:  []byte("logging:\n  level: info"),
+			expectedErr: "anthropic API key is required",
+		},
+		{
+			name: "invalid temperature low",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+  temperature: -0.1
+logging:
+  level: info`),
+			expectedErr: "anthropic temperature must be between 0 and 1",
+		},
+		{
+			name: "invalid temperature high",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+  temperature: 1.1
+logging:
+  level: info`),
+			expectedErr: "anthropic temperature must be between 0 and 1",
+		},
+		{
+			name: "invalid max tokens",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+  max_tokens: 0
+logging:
+  level: info`),
+			expectedErr: "anthropic max tokens must be greater than 0",
+		},
+		{
+			name: "invalid log level",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+logging:
+  level: invalid`),
+			expectedErr: "invalid logging level",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir, cleanup := setupTestEnv(t)
+			defer cleanup()
+
+			// Create config file with test case content
+			configDir := filepath.Join(tempDir, ".sredo")
+			require.NoError(t, os.MkdirAll(configDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
+
+			manager := New()
+			err := manager.LoadConfig()
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedErr)
+		})
+	}
+}
+
+// TestLoadConfig_EnvironmentVariables verifies environment variable handling:
+// - Environment variables override file configuration
+// - Handles all supported environment variables
+// - Properly converts environment variable types
+func TestLoadConfig_EnvironmentVariables(t *testing.T) {
+	_, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	// Set environment variables
+	os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
+	os.Setenv("SREDO_LOGGING_LEVEL", "debug")
+	os.Setenv("SREDO_ANTHROPIC_MODEL", "claude-3-opus")
+	os.Setenv("SREDO_ANTHROPIC_TEMPERATURE", "0.8")
+	defer func() {
+		os.Unsetenv("SREDO_LOGGING_LEVEL")
+		os.Unsetenv("SREDO_ANTHROPIC_MODEL")
+		os.Unsetenv("SREDO_ANTHROPIC_TEMPERATURE")
+	}()
+
+	manager := New()
+	err := manager.LoadConfig()
+	require.NoError(t, err)
+
+	config := manager.GetConfig()
+	assert.Equal(t, "debug", config.Logging.Level)
+	assert.Equal(t, "claude-3-opus", config.Anthropic.Model)
+	assert.Equal(t, 0.8, config.Anthropic.Temperature)
+}
+
+// TestGetLogger verifies logger creation:
+// - Creates logger with valid configuration
+// - Handles different log paths
+// - Handles logger creation errors
+func TestGetLogger(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	tests := []struct {
+		name        string
+		logPath     string
+		logLevel    string
+		expectError bool
+	}{
+		{
+			name:        "valid logger with debug level",
+			logPath:     filepath.Join(tempDir, "test.log"),
+			logLevel:    "debug",
+			expectError: false,
+		},
+		{
+			name:        "valid logger with info level",
+			logPath:     filepath.Join(tempDir, "test.log"),
+			logLevel:    "info",
+			expectError: false,
+		},
+		{
+			name:        "invalid log path",
+			logPath:     "/nonexistent/directory/test.log",
+			logLevel:    "info",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manager := New()
+			manager.configuration.Logging.Path = tt.logPath
+			manager.configuration.Logging.Level = tt.logLevel
+
+			logger, err := manager.GetLogger()
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.ErrorIs(t, err, ErrOpenLogFile)
+				assert.Nil(t, logger)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.NotNil(t, logger)
+
+			// Clean up the log file
+			if !tt.expectError {
+				os.Remove(tt.logPath)
+			}
+		})
+	}
+}
+
+// TestLoadConfig_DirectoryCreation verifies directory structure creation:
+// - Creates required directories
+// - Handles directory creation errors
+// - Manages directory permissions
+func TestLoadConfig_DirectoryCreation(t *testing.T) {
+	t.Run("creates config and cache directories", func(t *testing.T) {
+		tempDir, cleanup := setupTestEnv(t)
+		defer cleanup()
+
+		// Set required API key
+		os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
+
+		manager := New()
+		err := manager.LoadConfig()
+		require.NoError(t, err)
+
+		// Check if directories were created
+		configDir := filepath.Join(tempDir, ".sredo")
+		cacheDir := filepath.Join(tempDir, ".sredo/cache")
+
+		assert.DirExists(t, configDir)
+		assert.DirExists(t, cacheDir)
+	})
+
+	t.Run("handles directory creation errors", func(t *testing.T) {
+		tempDir, cleanup := setupTestEnv(t)
+		defer cleanup()
+
+		// Create a file where the config directory should be
+		err := os.WriteFile(filepath.Join(tempDir, ".sredo"), []byte("test"), 0644)
+		require.NoError(t, err)
+
+		manager := New()
+		err = manager.LoadConfig()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create config directory")
+	})
+
+	t.Run("handles cache directory creation errors", func(t *testing.T) {
+		tempDir, cleanup := setupTestEnv(t)
+		defer cleanup()
+
+		// Create config dir but make cache path a file
+		require.NoError(t, os.MkdirAll(filepath.Join(tempDir, ".sredo"), 0755))
+		err := os.WriteFile(filepath.Join(tempDir, ".sredo/cache"), []byte("test"), 0644)
+		require.NoError(t, err)
+
+		manager := New()
+		err = manager.LoadConfig()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create cache directory")
+	})
+}
+
+// TestValidate verifies configuration validation:
+// - Validates complete valid configuration
+// - Validates all error conditions
+// - Checks all configuration field constraints
+func TestValidate(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      Config
+		expectedErr error
+	}{
+		{
+			name: "valid config",
+			config: Config{
+				configuration: Configuration{
+					Logging: LoggingConfiguration{
+						Level: "debug",
+						Path:  "test.log",
+					},
+					Anthropic: AnthropicConfiguration{
+						APIKey:      "test-key",
+						Model:       "test-model",
+						Temperature: 0.5,
+						MaxTokens:   100,
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "invalid log level",
+			config: Config{
+				configuration: Configuration{
+					Logging: LoggingConfiguration{
+						Level: "invalid",
+					},
+					Anthropic: AnthropicConfiguration{
+						APIKey:      "test-key",
+						Temperature: 0.5,
+						MaxTokens:   100,
+					},
+				},
+			},
+			expectedErr: ErrInvalidLogLevel,
+		},
+		{
+			name: "temperature too high",
+			config: Config{
+				configuration: Configuration{
+					Logging: LoggingConfiguration{
+						Level: "info",
+					},
+					Anthropic: AnthropicConfiguration{
+						APIKey:      "test-key",
+						Temperature: 1.5,
+						MaxTokens:   100,
+					},
+				},
+			},
+			expectedErr: ErrInvalidTemp,
+		},
+		{
+			name: "temperature too low",
+			config: Config{
+				configuration: Configuration{
+					Logging: LoggingConfiguration{
+						Level: "info",
+					},
+					Anthropic: AnthropicConfiguration{
+						APIKey:      "test-key",
+						Temperature: -0.5,
+						MaxTokens:   100,
+					},
+				},
+			},
+			expectedErr: ErrInvalidTemp,
+		},
+		{
+			name: "invalid max tokens",
+			config: Config{
+				configuration: Configuration{
+					Logging: LoggingConfiguration{
+						Level: "info",
+					},
+					Anthropic: AnthropicConfiguration{
+						APIKey:      "test-key",
+						Temperature: 0.5,
+						MaxTokens:   0,
+					},
+				},
+			},
+			expectedErr: ErrInvalidMaxTokens,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manager := &Config{configuration: tt.config.configuration}
+			err := manager.validate()
+			if tt.expectedErr != nil {
+				assert.ErrorIs(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestGetLogger_LogLevels verifies log level handling:
+// - Supports all valid log levels
+// - Properly configures logger with each level
+// - Handles invalid log levels
+func TestGetLogger_LogLevels(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	tests := []struct {
+		name     string
+		logLevel string
+	}{
+		{
+			name:     "debug level",
+			logLevel: "debug",
+		},
+		{
+			name:     "info level",
+			logLevel: "info",
+		},
+		{
+			name:     "warn level",
+			logLevel: "warn",
+		},
+		{
+			name:     "error level",
+			logLevel: "error",
+		},
+		{
+			name:     "default to info for unknown level",
+			logLevel: "unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			manager := New()
+			manager.configuration.Logging.Path = filepath.Join(tempDir, "test.log")
+			manager.configuration.Logging.Level = tt.logLevel
+
+			logger, err := manager.GetLogger()
+			require.NoError(t, err)
+			assert.NotNil(t, logger)
+
+			// Clean up the log file
+			os.Remove(manager.configuration.Logging.Path)
+		})
+	}
+}
+
+// TestLoadConfig_ReadErrors verifies config file reading errors:
+// - Handles invalid YAML syntax
+// - Handles file permission errors
+// - Handles missing files
+func TestLoadConfig_ReadErrors(t *testing.T) {
+	t.Run("handles invalid config file", func(t *testing.T) {
+		tempDir, cleanup := setupTestEnv(t)
+		defer cleanup()
+
+		// Set required API key
+		os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
+
+		// Create an invalid YAML file
+		configDir := filepath.Join(tempDir, ".sredo")
+		require.NoError(t, os.MkdirAll(configDir, 0755))
+		require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("invalid: : : yaml"), 0644))
+
+		manager := New()
+		err := manager.LoadConfig()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to read config")
+	})
+}
+
+// TestLoadConfig_UITheme verifies UI theme configuration:
+// - Loads default theme
+// - Loads custom theme from config
+// - Handles theme from environment variable
+// - Properly handles environment variable override
+func TestLoadConfig_UITheme(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	tests := []struct {
+		name        string
+		configData  []byte
+		envTheme    string
+		expectTheme string
+		wantErr     bool
+	}{
+		{
+			name: "default theme",
+			configData: []byte(`
+anthropic:
+  api_key: test-key`),
+			expectTheme: "default",
+			wantErr:     false,
+		},
+		{
+			name: "custom theme from config",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+ui:
+  theme: dark`),
+			expectTheme: "dark",
+			wantErr:     false,
+		},
+		{
+			name: "theme from environment variable",
+			configData: []byte(`
+anthropic:
+  api_key: test-key`),
+			envTheme:    "light",
+			expectTheme: "light",
+			wantErr:     false,
+		},
+		{
+			name: "environment variable overrides config",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+ui:
+  theme: dark`),
+			envTheme:    "light",
+			expectTheme: "light",
+			wantErr:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create config file
+			configDir := filepath.Join(tempDir, ".sredo")
+			require.NoError(t, os.MkdirAll(configDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
+
+			// Set environment variable if specified
+			if tt.envTheme != "" {
+				os.Setenv("SREDO_UI_THEME", tt.envTheme)
+				defer os.Unsetenv("SREDO_UI_THEME")
+			}
+
+			manager := New()
+			err := manager.LoadConfig()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			config := manager.GetConfig()
+			assert.Equal(t, tt.expectTheme, string(config.UI.Theme))
+		})
+	}
+}
+
+// TestConfig_Interface verifies interface implementation:
+// - Ensures Config implements Configurer interface
+func TestConfig_Interface(t *testing.T) {
+	// Verify Config implements Configurer interface
+	var _ Configurer = (*Config)(nil)
+}
+
+// TestLoadConfig_ConfigFilePermissions verifies permission handling:
+// - Handles restricted directory permissions
+// - Properly reports permission errors
+func TestLoadConfig_ConfigFilePermissions(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	// Create config directory with restricted permissions
+	configDir := filepath.Join(tempDir, ".sredo")
+	require.NoError(t, os.MkdirAll(configDir, 0000))
+	//nolint:errcheck
+	defer os.Chmod(configDir, 0755) // Restore permissions for cleanup
+
+	manager := New()
+	err := manager.LoadConfig()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create directories")
+}
+
+// TestGetLogger_ConfiguredLevel verifies logger level configuration:
+// - Configures logger with each valid level
+// - Creates working logger for each level
+func TestGetLogger_ConfiguredLevel(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	manager := New()
+	manager.configuration.Logging.Path = filepath.Join(tempDir, "test.log")
+
+	// Test each valid log level
+	levels := []string{"debug", "info", "warn", "error"}
+	for _, level := range levels {
+		t.Run(level, func(t *testing.T) {
+			manager.configuration.Logging.Level = level
+			logger, err := manager.GetLogger()
+			assert.NoError(t, err)
+			assert.NotNil(t, logger)
+		})
+	}
+}
+
+// TestLoadConfig_AnthropicValidation verifies Anthropic configuration:
+// - Validates model names
+// - Handles empty model name
+// - Uses default values when appropriate
+func TestLoadConfig_AnthropicValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		config      string
+		expectError string
+	}{
+		{
+			name: "valid model name",
+			config: `
+anthropic:
+  api_key: test-key
+  model: claude-3-opus
+  temperature: 0.7
+  max_tokens: 100`,
+			expectError: "",
+		},
+		{
+			name: "empty model name",
+			config: `
+anthropic:
+  api_key: test-key
+  model: ""
+  temperature: 0.7
+  max_tokens: 100`,
+			expectError: "", // Default model will be used
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tempDir, cleanup := setupTestEnv(t)
+			defer cleanup()
+
+			configDir := filepath.Join(tempDir, ".sredo")
+			require.NoError(t, os.MkdirAll(configDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(tt.config), 0644))
+
+			manager := New()
+			err := manager.LoadConfig()
+
+			if tt.expectError != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectError)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

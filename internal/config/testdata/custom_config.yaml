@@ -1,0 +1,10 @@
+ui:
+  theme: custom_theme
+logging:
+  level: debug
+  path: /custom/log/path
+anthropic:
+  api_key: test-key
+  model: claude-3-opus
+  temperature: 0.7
+  max_tokens: 2048
