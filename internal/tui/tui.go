@@ -1,0 +1,137 @@
+package tui
+
+import (
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/datolabs-io/sredo/internal/config"
+	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/datolabs-io/sredo/internal/tui/components/commandspane"
+	"github.com/datolabs-io/sredo/internal/tui/components/footer"
+	"github.com/datolabs-io/sredo/internal/tui/components/header"
+	"github.com/datolabs-io/sredo/internal/tui/components/messagespane"
+)
+
+// model is the main model for the TUI.
+type model struct {
+	theme        *thememanager.Theme
+	header       *header.Model
+	footer       *footer.Model
+	messagesPane *messagespane.Model
+	commandsPane *commandspane.Model
+	config       config.Configuration
+	task         string
+	toolsCount   int
+}
+
+// Option is a function that configures the model.
+type Option func(*model)
+
+// New creates a new TUI instance.
+func New(opts ...Option) *model {
+	m := &model{
+		config: config.New().GetConfig(),
+		theme: &thememanager.Theme{
+			BaseColors:   thememanager.BaseColors{},
+			AccentColors: thememanager.AccentColors{},
+		},
+	}
+
+	for _, opt := range opts {
+		opt(m)
+	}
+
+	m.header = header.New(header.WithTheme(*m.theme), header.WithTask(m.task))
+	m.footer = footer.New(footer.WithTheme(*m.theme), footer.WithParameters(footer.Parameters{
+		Engine:      "Anthropic",
+		Model:       m.config.Anthropic.Model,
+		MaxTokens:   m.config.Anthropic.MaxTokens,
+		Temperature: m.config.Anthropic.Temperature,
+		ToolsCount:  m.toolsCount,
+	}))
+	m.messagesPane = messagespane.New(messagespane.WithTheme(*m.theme))
+	m.commandsPane = commandspane.New(commandspane.WithTheme(*m.theme))
+
+	return m
+}
+
+// Init initializes the TUI.
+func (m *model) Init() tea.Cmd {
+	return tea.SetWindowTitle("Sredo - Your AI-Powered SRE Colleague")
+}
+
+// Update handles all messages and updates the TUI
+func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var headerMsg, footerMsg, messagesMsg, commandsMsg tea.Msg
+	headerMsg = msg
+	footerMsg = msg
+	messagesMsg = msg
+	commandsMsg = msg
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		headerHeight := lipgloss.Height(m.header.View())
+		footerHeight := lipgloss.Height(m.footer.View())
+		remainingHeight := msg.Height - headerHeight - footerHeight - 6
+
+		messagesMsg = tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: remainingHeight * 2 / 3,
+		}
+		commandsMsg = tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: remainingHeight * 1 / 3,
+		}
+	}
+
+	// Update all components with their respective messages
+	var headerCmd, footerCmd, messagesCmd, commandsCmd tea.Cmd
+	m.header, headerCmd = m.header.Update(headerMsg)
+	m.footer, footerCmd = m.footer.Update(footerMsg)
+	m.messagesPane, messagesCmd = m.messagesPane.Update(messagesMsg)
+	m.commandsPane, commandsCmd = m.commandsPane.Update(commandsMsg)
+
+	// Batch all commands
+	return m, tea.Batch(headerCmd, footerCmd, messagesCmd, commandsCmd)
+}
+
+// View renders the TUI.
+func (m *model) View() string {
+	return lipgloss.JoinVertical(lipgloss.Top,
+		m.header.View(),
+		m.messagesPane.View(),
+		m.commandsPane.View(),
+		m.footer.View(),
+	)
+}
+
+// WithTask sets the task that the agent will execute.
+func WithTask(task string) Option {
+	return func(m *model) {
+		m.task = task
+	}
+}
+
+// WithConfig sets the configuration for the TUI.
+func WithConfig(cfg config.Configuration) Option {
+	return func(m *model) {
+		m.config = cfg
+	}
+}
+
+// WithTheme sets the theme for the TUI.
+func WithTheme(theme *thememanager.Theme) Option {
+	return func(m *model) {
+		m.theme = theme
+	}
+}
+
+// WithToolsCount sets the number of tools that the agent will use.
+func WithToolsCount(toolsCount int) Option {
+	return func(m *model) {
+		m.toolsCount = toolsCount
+	}
+}
