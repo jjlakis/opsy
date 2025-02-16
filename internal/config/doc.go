@@ -18,11 +18,11 @@
 //
 // Usage:
 //
-//	cfg := config.New()
-//	if err := cfg.LoadConfig(); err != nil {
+//	manager := config.New()
+//	if err := manager.LoadConfig(); err != nil {
 //	    log.Fatal(err)
 //	}
-//	config := cfg.GetConfig()
+//	config := manager.GetConfig()
 //
 // Environment Variables:
 //   - ANTHROPIC_API_KEY: API key for Anthropic
@@ -30,6 +30,7 @@
 //   - SREDO_LOGGING_LEVEL: Log level (debug, info, warn, error)
 //   - SREDO_ANTHROPIC_MODEL: Model name
 //   - SREDO_ANTHROPIC_TEMPERATURE: Temperature value
+//   - SREDO_ANTHROPIC_MAX_TOKENS: Maximum tokens for completion
 //
 // Directory Structure:
 //
@@ -37,6 +38,15 @@
 //	├── config.yaml  // Configuration file
 //	├── log.log     // Default log file
 //	├── cache/      // Cache directory
-//	├── themes/     // Custom UI themes
 //	└── tools/      // Tool-specific data
+//
+// The package uses the following error constants for error handling:
+//   - ErrCreateDirs: Returned when directory creation fails
+//   - ErrReadConfig: Returned when config file cannot be read
+//   - ErrUnmarshalConfig: Returned when config parsing fails
+//   - ErrMissingAPIKey: Returned when Anthropic API key is missing
+//   - ErrInvalidTemp: Returned when temperature is not between 0 and 1
+//   - ErrInvalidMaxTokens: Returned when max tokens is not positive
+//   - ErrInvalidLogLevel: Returned when log level is invalid
+//   - ErrOpenLogFile: Returned when log file cannot be opened
 package config
