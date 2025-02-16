@@ -1,0 +1,11 @@
+base:
+  base00: "#1A1B26"  # Primary background
+  base01: "#24283B"  # Secondary background
+  base02: "#292E42"  # Borders and dividers
+  base03: "#565F89"  # Muted text
+  base04: "#A9B1D6"  # Primary text
+
+accent:
+  accent0: "#FF9E64"  # Command text
+  accent1: "#9ECE6A"  # Agent messages
+  accent2: "#7AA2F7"  # Tool output
