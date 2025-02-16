@@ -1,0 +1,11 @@
+base:
+  base00: [this is not valid]  # Invalid YAML syntax
+  base01: "#24283B"
+  base02: "#292E42"
+  base03: "#565F89"
+  base04: "#A9B1D6"
+
+accent:
+  accent0: "#FF9E64"
+  accent1: "#9ECE6A"
+  accent2: "#7AA2F7"

@@ -1,0 +1,9 @@
+base:
+  base00: "#1A1B26"
+  base01: "#24283B"
+  # missing base02, base03, base04
+
+accent:
+  accent0: "#FF9E64"
+  accent1: "#9ECE6A"
+  accent2: "#7AA2F7"
