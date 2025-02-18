@@ -19,6 +19,8 @@ type Configuration struct {
 	Logging LoggingConfiguration `yaml:"logging"`
 	// Anthropic is the configuration for the Anthropic API.
 	Anthropic AnthropicConfiguration `yaml:"anthropic"`
+	// Tools is the configuration for the tools.
+	Tools ToolsConfiguration `yaml:"tools"`
 }
 
 // UIConfiguration is the configuration for the UI.
@@ -33,6 +35,20 @@ type LoggingConfiguration struct {
 	Path string `yaml:"path"`
 	// Level is the logging level.
 	Level string `yaml:"level"`
+}
+
+// ToolsConfiguration is the configuration for the tools.
+type ToolsConfiguration struct {
+	// Timeout is the maximum duration in seconds for a tool to execute.
+	Timeout int64 `yaml:"timeout"`
+	// Exec is the configuration for the exec tool.
+	Exec ExecToolConfiguration `yaml:"exec"`
+}
+
+// ExecToolConfiguration is the configuration for the exec tool.
+type ExecToolConfiguration struct {
+	// Timeout is the maximum duration in seconds for a tool to execute.
+	Timeout int64 `yaml:"timeout"`
 }
 
 // AnthropicConfiguration is the configuration for the Anthropic API.
@@ -96,6 +112,8 @@ var (
 	ErrOpenLogFile = errors.New("failed to open log file")
 	// ErrWriteConfig is returned when the config file cannot be written.
 	ErrWriteConfig = errors.New("failed to write config")
+	// ErrValidateConfig is returned when the config is invalid.
+	ErrValidateConfig = errors.New("invalid config")
 )
 
 // New creates a new config instance.
@@ -140,7 +158,11 @@ func (c *Config) LoadConfig() error {
 		return fmt.Errorf("%w: %v", ErrUnmarshalConfig, err)
 	}
 
-	return c.validate()
+	if err := c.validate(); err != nil {
+		return fmt.Errorf("%w: %v", ErrValidateConfig, err)
+	}
+
+	return nil
 }
 
 // GetConfig returns the current configuration.
@@ -220,4 +242,6 @@ func (c *Config) setDefaults() {
 	viper.SetDefault("anthropic.model", "claude-3-5-sonnet-latest")
 	viper.SetDefault("anthropic.temperature", 0.9)
 	viper.SetDefault("anthropic.max_tokens", 1024)
+	viper.SetDefault("tools.timeout", 120)
+	viper.SetDefault("tools.exec.timeout", 60)
 }

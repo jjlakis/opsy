@@ -8,3 +8,7 @@ anthropic:
   model: claude-3-opus
   temperature: 0.7
   max_tokens: 2048
+tools:
+  timeout: 180
+  exec:
+    timeout: 90

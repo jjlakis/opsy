@@ -59,6 +59,8 @@ func TestNewConfigManager(t *testing.T) {
 		assert.Equal(t, "claude-3-5-sonnet-latest", viper.GetString("anthropic.model"))
 		assert.Equal(t, 0.9, viper.GetFloat64("anthropic.temperature"))
 		assert.Equal(t, int64(1024), viper.GetInt64("anthropic.max_tokens"))
+		assert.Equal(t, int64(120), viper.GetInt64("tools.timeout"))
+		assert.Equal(t, int64(60), viper.GetInt64("tools.exec.timeout"))
 	})
 
 	t.Run("binds environment variables", func(t *testing.T) {
@@ -94,6 +96,8 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, "claude-3-5-sonnet-latest", config.Anthropic.Model)
 	assert.Equal(t, 0.9, config.Anthropic.Temperature)
 	assert.Equal(t, int64(1024), config.Anthropic.MaxTokens)
+	assert.Equal(t, int64(120), config.Tools.Timeout)
+	assert.Equal(t, int64(60), config.Tools.Exec.Timeout)
 }
 
 // TestLoadConfig_CustomValues verifies custom configuration loading:
@@ -124,6 +128,8 @@ func TestLoadConfig_CustomValues(t *testing.T) {
 	assert.Equal(t, 0.7, config.Anthropic.Temperature)
 	assert.Equal(t, int64(2048), config.Anthropic.MaxTokens)
 	assert.Equal(t, "custom_theme", config.UI.Theme)
+	assert.Equal(t, int64(180), config.Tools.Timeout)
+	assert.Equal(t, int64(90), config.Tools.Exec.Timeout)
 }
 
 // TestLoadConfig_ValidationErrors verifies configuration validation:
@@ -638,6 +644,7 @@ func TestLoadConfig_ConfigFilePermissions(t *testing.T) {
 // TestGetLogger_ConfiguredLevel verifies logger level configuration:
 // - Configures logger with each valid level
 // - Creates working logger for each level
+// - Handles invalid log levels
 func TestGetLogger_ConfiguredLevel(t *testing.T) {
 	tempDir, cleanup := setupTestEnv(t)
 	defer cleanup()
@@ -707,6 +714,106 @@ anthropic:
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+// TestLoadConfig_ToolsConfiguration verifies tools configuration:
+// - Loads default tool timeouts
+// - Loads custom tool timeouts from config
+// - Handles tool timeouts from environment variables
+func TestLoadConfig_ToolsConfiguration(t *testing.T) {
+	tempDir, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	tests := []struct {
+		name           string
+		configData     []byte
+		envTimeout     string
+		envExecTimeout string
+		expectTimeout  int64
+		expectExec     int64
+		wantErr        bool
+	}{
+		{
+			name: "default timeouts",
+			configData: []byte(`
+anthropic:
+  api_key: test-key`),
+			expectTimeout: 120,
+			expectExec:    60,
+			wantErr:       false,
+		},
+		{
+			name: "custom timeouts from config",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+tools:
+  timeout: 180
+  exec:
+    timeout: 90`),
+			expectTimeout: 180,
+			expectExec:    90,
+			wantErr:       false,
+		},
+		{
+			name: "timeouts from environment variables",
+			configData: []byte(`
+anthropic:
+  api_key: test-key`),
+			envTimeout:     "240",
+			envExecTimeout: "120",
+			expectTimeout:  240,
+			expectExec:     120,
+			wantErr:        false,
+		},
+		{
+			name: "environment variables override config",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+tools:
+  timeout: 180
+  exec:
+    timeout: 90`),
+			envTimeout:     "300",
+			envExecTimeout: "150",
+			expectTimeout:  300,
+			expectExec:     150,
+			wantErr:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create config file
+			configDir := filepath.Join(tempDir, ".sredo")
+			require.NoError(t, os.MkdirAll(configDir, 0755))
+			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
+
+			// Set environment variables if specified
+			if tt.envTimeout != "" {
+				os.Setenv("SREDO_TOOLS_TIMEOUT", tt.envTimeout)
+				defer os.Unsetenv("SREDO_TOOLS_TIMEOUT")
+			}
+			if tt.envExecTimeout != "" {
+				os.Setenv("SREDO_TOOLS_EXEC_TIMEOUT", tt.envExecTimeout)
+				defer os.Unsetenv("SREDO_TOOLS_EXEC_TIMEOUT")
+			}
+
+			manager := New()
+			err := manager.LoadConfig()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+			config := manager.GetConfig()
+			assert.Equal(t, tt.expectTimeout, config.Tools.Timeout)
+			assert.Equal(t, tt.expectExec, config.Tools.Exec.Timeout)
 		})
 	}
 }

@@ -14,6 +14,7 @@
 //	  UI:        UIConfiguration        // UI theme and styling
 //	  Logging:   LoggingConfiguration   // Log file path and level
 //	  Anthropic: AnthropicConfiguration // API settings for Anthropic
+//	  Tools:     ToolsConfiguration     // Global tool settings
 //	}
 //
 // Usage:
@@ -31,6 +32,8 @@
 //   - SREDO_ANTHROPIC_MODEL: Model name
 //   - SREDO_ANTHROPIC_TEMPERATURE: Temperature value
 //   - SREDO_ANTHROPIC_MAX_TOKENS: Maximum tokens for completion
+//   - SREDO_TOOLS_TIMEOUT: Global timeout for tools in seconds
+//   - SREDO_TOOLS_EXEC_TIMEOUT: Timeout for exec tool in seconds
 //
 // Directory Structure:
 //
