@@ -1,0 +1,76 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Theme Definition Schema",
+  "description": "Schema for defining color themes for the application TUI",
+  "required": [
+    "base",
+    "accent"
+  ],
+  "properties": {
+    "base": {
+      "type": "object",
+      "description": "The base color palette",
+      "required": [
+        "base00",
+        "base01",
+        "base02",
+        "base03",
+        "base04"
+      ],
+      "properties": {
+        "base00": {
+          "type": "string",
+          "description": "Primary background color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "base01": {
+          "type": "string",
+          "description": "Secondary background color (status bars, input)",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "base02": {
+          "type": "string",
+          "description": "Borders and dividers color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "base03": {
+          "type": "string",
+          "description": "Muted or disabled text color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "base04": {
+          "type": "string",
+          "description": "Primary text content color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      }
+    },
+    "accent": {
+      "type": "object",
+      "description": "The accent color palette",
+      "required": [
+        "accent0",
+        "accent1",
+        "accent2"
+      ],
+      "properties": {
+        "accent0": {
+          "type": "string",
+          "description": "Command text and prompts color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "accent1": {
+          "type": "string",
+          "description": "Agent messages and success states color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "accent2": {
+          "type": "string",
+          "description": "Tool output and links color",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        }
+      }
+    }
+  }
+}

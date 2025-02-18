@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Tool Definition Schema",
+  "description": "Schema for defining tools for the agent",
+  "required": [
+    "display_name",
+    "description",
+    "system_prompt",
+    "inputs"
+  ],
+  "properties": {
+    "display_name": {
+      "type": "string",
+      "description": "The name of the tool as it will be displayed in the UI"
+    },
+    "description": {
+      "type": "string",
+      "description": "The description of the tool as it will be displayed in the UI"
+    },
+    "system_prompt": {
+      "type": "string",
+      "description": "The system prompt to use when the tool is selected"
+    },
+    "inputs": {
+      "type": "object",
+      "description": "The inputs for the tool",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "description"
+        ],
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "The description of the input"
+          },
+          "default": {
+            "type": "string",
+            "description": "The default value for the input"
+          },
+          "examples": {
+            "type": "array",
+            "description": "Examples of valid input values",
+            "items": {
+              "type": [
+                "string",
+                "number",
+                "boolean",
+                "object",
+                "array"
+              ]
+            }
+          },
+          "optional": {
+            "type": "boolean",
+            "description": "Whether the input is optional",
+            "default": false
+          }
+        }
+      }
+    }
+  }
+}
