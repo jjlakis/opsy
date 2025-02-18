@@ -1,0 +1,17 @@
+display_name: "Test Tool"
+description: "A tool for testing purposes"
+system_prompt: "You are a test tool."
+inputs:
+  test_input:
+    description: "A test input parameter"
+    default: "default value"
+    examples:
+      - "example 1"
+      - "example 2"
+    optional: false
+  optional_input:
+    description: "An optional test input"
+    default: ""
+    examples:
+      - "optional example"
+    optional: true
