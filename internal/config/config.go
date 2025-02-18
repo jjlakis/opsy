@@ -243,5 +243,5 @@ func (c *Config) setDefaults() {
 	viper.SetDefault("anthropic.temperature", 0.9)
 	viper.SetDefault("anthropic.max_tokens", 1024)
 	viper.SetDefault("tools.timeout", 120)
-	viper.SetDefault("tools.exec.timeout", 60)
+	viper.SetDefault("tools.exec.timeout", 0)
 }
