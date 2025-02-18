@@ -6,5 +6,34 @@
     "./schemas/theme.schema.json": [
       "internal/thememanager/themes/*.yaml"
     ]
-  }
+  },
+  "cSpell.ignorePaths": [
+    "go.sum",
+    "go.mod"
+  ],
+  "cSpell.words": [
+    "agnt",
+    "anthropics",
+    "bubbletea",
+    "charmbracelet",
+    "commandspane",
+    "dylib",
+    "gopkg",
+    "invopop",
+    "jsonparser",
+    "jsonschema",
+    "lipgloss",
+    "mapstructure",
+    "messagespane",
+    "nolint",
+    "nonexistentcommand",
+    "orderedmap",
+    "sredo",
+    "stretchr",
+    "testdata",
+    "textinput",
+    "thememanager",
+    "themer",
+    "toolmanager"
+  ]
 }
