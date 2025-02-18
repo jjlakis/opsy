@@ -19,11 +19,13 @@ func setupTestEnv(t *testing.T) (string, func()) {
 	origHome := os.Getenv("HOME")
 	origAPIKey := os.Getenv("ANTHROPIC_API_KEY")
 	origLogLevel := os.Getenv("SREDO_LOGGING_LEVEL")
+	origExecShell := os.Getenv("SREDO_TOOLS_EXEC_SHELL")
 
 	// Set up test environment
 	os.Setenv("HOME", tempDir)
-	os.Unsetenv("ANTHROPIC_API_KEY")   // Ensure API key is not set
-	os.Unsetenv("SREDO_LOGGING_LEVEL") // Ensure log level is not set
+	os.Unsetenv("ANTHROPIC_API_KEY")      // Ensure API key is not set
+	os.Unsetenv("SREDO_LOGGING_LEVEL")    // Ensure log level is not set
+	os.Unsetenv("SREDO_TOOLS_EXEC_SHELL") // Ensure shell is not set
 
 	// Return cleanup function
 	cleanup := func() {
@@ -34,6 +36,11 @@ func setupTestEnv(t *testing.T) (string, func()) {
 			os.Setenv("SREDO_LOGGING_LEVEL", origLogLevel)
 		} else {
 			os.Unsetenv("SREDO_LOGGING_LEVEL")
+		}
+		if origExecShell != "" {
+			os.Setenv("SREDO_TOOLS_EXEC_SHELL", origExecShell)
+		} else {
+			os.Unsetenv("SREDO_TOOLS_EXEC_SHELL")
 		}
 		viper.Reset()
 	}
@@ -60,7 +67,8 @@ func TestNewConfigManager(t *testing.T) {
 		assert.Equal(t, 0.9, viper.GetFloat64("anthropic.temperature"))
 		assert.Equal(t, int64(1024), viper.GetInt64("anthropic.max_tokens"))
 		assert.Equal(t, int64(120), viper.GetInt64("tools.timeout"))
-		assert.Equal(t, int64(60), viper.GetInt64("tools.exec.timeout"))
+		assert.Equal(t, int64(0), viper.GetInt64("tools.exec.timeout"))
+		assert.Equal(t, "/bin/bash", viper.GetString("tools.exec.shell"))
 	})
 
 	t.Run("binds environment variables", func(t *testing.T) {
@@ -97,7 +105,8 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 	assert.Equal(t, 0.9, config.Anthropic.Temperature)
 	assert.Equal(t, int64(1024), config.Anthropic.MaxTokens)
 	assert.Equal(t, int64(120), config.Tools.Timeout)
-	assert.Equal(t, int64(60), config.Tools.Exec.Timeout)
+	assert.Equal(t, int64(0), config.Tools.Exec.Timeout)
+	assert.Equal(t, "/bin/bash", config.Tools.Exec.Shell)
 }
 
 // TestLoadConfig_CustomValues verifies custom configuration loading:
@@ -130,6 +139,7 @@ func TestLoadConfig_CustomValues(t *testing.T) {
 	assert.Equal(t, "custom_theme", config.UI.Theme)
 	assert.Equal(t, int64(180), config.Tools.Timeout)
 	assert.Equal(t, int64(90), config.Tools.Exec.Timeout)
+	assert.Equal(t, "/bin/bash", config.Tools.Exec.Shell)
 }
 
 // TestLoadConfig_ValidationErrors verifies configuration validation:
@@ -187,6 +197,26 @@ anthropic:
 logging:
   level: invalid`),
 			expectedErr: "invalid logging level",
+		},
+		{
+			name: "missing shell",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+tools:
+  exec:
+    shell: ""`),
+			expectedErr: "invalid exec shell",
+		},
+		{
+			name: "invalid shell path",
+			configData: []byte(`
+anthropic:
+  api_key: test-key
+tools:
+  exec:
+    shell: "/nonexistent/shell"`),
+			expectedErr: "invalid exec shell",
 		},
 	}
 
@@ -373,6 +403,13 @@ func TestValidate(t *testing.T) {
 						Model:       "test-model",
 						Temperature: 0.5,
 						MaxTokens:   100,
+					},
+					Tools: ToolsConfiguration{
+						Timeout: 120,
+						Exec: ExecToolConfiguration{
+							Timeout: 60,
+							Shell:   "/bin/bash",
+						},
 					},
 				},
 			},
@@ -719,8 +756,8 @@ anthropic:
 }
 
 // TestLoadConfig_ToolsConfiguration verifies tools configuration:
-// - Loads default tool timeouts
-// - Loads custom tool timeouts from config
+// - Loads default tool timeouts and shell
+// - Loads custom tool timeouts and shell from config
 // - Handles tool timeouts from environment variables
 func TestLoadConfig_ToolsConfiguration(t *testing.T) {
 	tempDir, cleanup := setupTestEnv(t)
@@ -731,41 +768,48 @@ func TestLoadConfig_ToolsConfiguration(t *testing.T) {
 		configData     []byte
 		envTimeout     string
 		envExecTimeout string
+		envExecShell   string
 		expectTimeout  int64
 		expectExec     int64
+		expectShell    string
 		wantErr        bool
 	}{
 		{
-			name: "default timeouts",
+			name: "default timeouts and shell",
 			configData: []byte(`
 anthropic:
   api_key: test-key`),
 			expectTimeout: 120,
-			expectExec:    60,
+			expectExec:    0,
+			expectShell:   "/bin/bash",
 			wantErr:       false,
 		},
 		{
-			name: "custom timeouts from config",
+			name: "custom timeouts and shell from config",
 			configData: []byte(`
 anthropic:
   api_key: test-key
 tools:
   timeout: 180
   exec:
-    timeout: 90`),
+    timeout: 90
+    shell: "/bin/zsh"`),
 			expectTimeout: 180,
 			expectExec:    90,
+			expectShell:   "/bin/zsh",
 			wantErr:       false,
 		},
 		{
-			name: "timeouts from environment variables",
+			name: "timeouts and shell from environment variables",
 			configData: []byte(`
 anthropic:
   api_key: test-key`),
 			envTimeout:     "240",
 			envExecTimeout: "120",
+			envExecShell:   "/bin/zsh",
 			expectTimeout:  240,
 			expectExec:     120,
+			expectShell:    "/bin/zsh",
 			wantErr:        false,
 		},
 		{
@@ -776,11 +820,14 @@ anthropic:
 tools:
   timeout: 180
   exec:
-    timeout: 90`),
+    timeout: 90
+    shell: "/bin/bash"`),
 			envTimeout:     "300",
 			envExecTimeout: "150",
+			envExecShell:   "/bin/zsh",
 			expectTimeout:  300,
 			expectExec:     150,
+			expectShell:    "/bin/zsh",
 			wantErr:        false,
 		},
 	}
@@ -801,6 +848,10 @@ tools:
 				os.Setenv("SREDO_TOOLS_EXEC_TIMEOUT", tt.envExecTimeout)
 				defer os.Unsetenv("SREDO_TOOLS_EXEC_TIMEOUT")
 			}
+			if tt.envExecShell != "" {
+				os.Setenv("SREDO_TOOLS_EXEC_SHELL", tt.envExecShell)
+				defer os.Unsetenv("SREDO_TOOLS_EXEC_SHELL")
+			}
 
 			manager := New()
 			err := manager.LoadConfig()
@@ -814,6 +865,7 @@ tools:
 			config := manager.GetConfig()
 			assert.Equal(t, tt.expectTimeout, config.Tools.Timeout)
 			assert.Equal(t, tt.expectExec, config.Tools.Exec.Timeout)
+			assert.Equal(t, tt.expectShell, config.Tools.Exec.Shell)
 		})
 	}
 }

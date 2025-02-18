@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -49,6 +50,8 @@ type ToolsConfiguration struct {
 type ExecToolConfiguration struct {
 	// Timeout is the maximum duration in seconds for a tool to execute.
 	Timeout int64 `yaml:"timeout"`
+	// Shell is the shell to use for the exec tool.
+	Shell string `yaml:"shell"`
 }
 
 // AnthropicConfiguration is the configuration for the Anthropic API.
@@ -114,6 +117,8 @@ var (
 	ErrWriteConfig = errors.New("failed to write config")
 	// ErrValidateConfig is returned when the config is invalid.
 	ErrValidateConfig = errors.New("invalid config")
+	// ErrInvalidShell is returned when the shell is invalid.
+	ErrInvalidShell = errors.New("invalid exec shell")
 )
 
 // New creates a new config instance.
@@ -232,6 +237,14 @@ func (c *Config) validate() error {
 		return ErrInvalidLogLevel
 	}
 
+	if c.configuration.Tools.Exec.Shell == "" {
+		return ErrInvalidShell
+	} else {
+		if _, err := exec.LookPath(c.configuration.Tools.Exec.Shell); err != nil {
+			return ErrInvalidShell
+		}
+	}
+
 	return nil
 }
 
@@ -244,4 +257,5 @@ func (c *Config) setDefaults() {
 	viper.SetDefault("anthropic.max_tokens", 1024)
 	viper.SetDefault("tools.timeout", 120)
 	viper.SetDefault("tools.exec.timeout", 0)
+	viper.SetDefault("tools.exec.shell", "/bin/bash")
 }

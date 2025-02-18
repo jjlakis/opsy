@@ -12,3 +12,4 @@ tools:
   timeout: 180
   exec:
     timeout: 90
+    shell: "/bin/bash"
