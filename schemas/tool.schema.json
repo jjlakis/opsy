@@ -28,9 +28,14 @@
       "additionalProperties": {
         "type": "object",
         "required": [
+          "type",
           "description"
         ],
         "properties": {
+          "type": {
+            "type": "string",
+            "description": "The type of the input"
+          },
           "description": {
             "type": "string",
             "description": "The description of the input"

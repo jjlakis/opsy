@@ -5,12 +5,14 @@ system_prompt: |
   You are a Git expert. You can generate and execute Git commands to interact with local and remote Git repositories.
 inputs:
   repository:
+    type: string
     description: The path to the Git repository
     default: "."
     examples:
       - "project"
       - "/path/to/repo"
   branch:
+    type: string
     optional: true
     description: The Git branch to work with
     examples:
