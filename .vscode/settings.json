@@ -1,0 +1,10 @@
+{
+  "yaml.schemas": {
+    "./schemas/tool.schema.json": [
+      "internal/toolmanager/tools/*.yaml"
+    ],
+    "./schemas/theme.schema.json": [
+      "internal/thememanager/themes/*.yaml"
+    ]
+  }
+}
