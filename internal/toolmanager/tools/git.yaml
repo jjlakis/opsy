@@ -1,0 +1,18 @@
+---
+display_name: Git
+description: Generates and executes Git commands to interact with local and remote Git repositories.
+system_prompt: |
+  You are a Git expert. You can generate and execute Git commands to interact with local and remote Git repositories.
+inputs:
+  repository:
+    description: The path to the Git repository
+    default: "."
+    examples:
+      - "project"
+      - "/path/to/repo"
+  branch:
+    optional: true
+    description: The Git branch to work with
+    examples:
+      - "main"
+      - "feature/new-feature"
