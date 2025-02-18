@@ -1,0 +1,125 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Configuration Schema",
+  "description": "Schema for the sredo CLI configuration",
+  "required": [
+    "ui",
+    "logging",
+    "anthropic",
+    "tools"
+  ],
+  "properties": {
+    "ui": {
+      "type": "object",
+      "description": "Configuration for the UI",
+      "required": [
+        "theme"
+      ],
+      "properties": {
+        "theme": {
+          "type": "string",
+          "description": "Theme for the UI",
+          "default": "default"
+        }
+      }
+    },
+    "logging": {
+      "type": "object",
+      "description": "Configuration for logging",
+      "required": [
+        "path",
+        "level"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "Path to the log file",
+          "default": "~/.sredo/log.log"
+        },
+        "level": {
+          "type": "string",
+          "description": "Logging level",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info"
+        }
+      }
+    },
+    "anthropic": {
+      "type": "object",
+      "description": "Configuration for the Anthropic API",
+      "required": [
+        "api_key",
+        "model",
+        "temperature",
+        "max_tokens"
+      ],
+      "properties": {
+        "api_key": {
+          "type": "string",
+          "description": "API key for the Anthropic API"
+        },
+        "model": {
+          "type": "string",
+          "description": "Model to use for the Anthropic API",
+          "default": "claude-3-5-sonnet-latest"
+        },
+        "temperature": {
+          "type": "number",
+          "description": "Temperature to use for the Anthropic API",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.9
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Maximum number of tokens to use for the Anthropic API",
+          "minimum": 1,
+          "default": 1024
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "description": "Configuration for the tools",
+      "required": [
+        "timeout",
+        "exec"
+      ],
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "description": "Maximum duration in seconds for a tool to execute",
+          "minimum": 0,
+          "default": 120
+        },
+        "exec": {
+          "type": "object",
+          "description": "Configuration for the exec tool",
+          "required": [
+            "timeout",
+            "shell"
+          ],
+          "properties": {
+            "timeout": {
+              "type": "integer",
+              "description": "Maximum duration in seconds for a tool to execute",
+              "minimum": 0,
+              "default": 0
+            },
+            "shell": {
+              "type": "string",
+              "description": "Shell to use for the exec tool",
+              "default": "/bin/bash"
+            }
+          }
+        }
+      }
+    }
+  }
+}

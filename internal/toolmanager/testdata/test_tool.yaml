@@ -3,6 +3,7 @@ description: "A tool for testing purposes"
 system_prompt: "You are a test tool."
 inputs:
   test_input:
+    type: "string"
     description: "A test input parameter"
     default: "default value"
     examples:
@@ -10,6 +11,7 @@ inputs:
       - "example 2"
     optional: false
   optional_input:
+    type: "string"
     description: "An optional test input"
     default: ""
     examples:

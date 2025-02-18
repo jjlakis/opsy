@@ -1,10 +1,15 @@
 {
   "yaml.schemas": {
     "./schemas/tool.schema.json": [
-      "internal/toolmanager/tools/*.yaml"
+      "internal/toolmanager/tools/*.yaml",
+      "internal/toolmanager/testdata/*.yaml"
     ],
     "./schemas/theme.schema.json": [
-      "internal/thememanager/themes/*.yaml"
+      "internal/thememanager/themes/*.yaml",
+      "internal/thememanager/testdata/*.yaml"
+    ],
+    "./schemas/config.schema.json": [
+      "internal/config/testdata/*.yaml"
     ]
   },
   "cSpell.ignorePaths": [

@@ -26,6 +26,8 @@ const (
 	ErrParsingTool = "failed to parse tool"
 	// ErrToolNotFound is the error message for a tool not found.
 	ErrToolNotFound = "tool not found"
+	// ErrInvalidToolDefinition is the error message for an invalid tool definition.
+	ErrInvalidToolDefinition = "invalid tool definition"
 
 	// toolsDir is the directory containing the tools.
 	toolsDir = "tools"
@@ -113,6 +115,9 @@ func (tm *ToolManager) LoadTools() error {
 		return fmt.Errorf("%s: %v", ErrLoadingTools, err)
 	}
 
+	// Exec tool is a special tool which we always statically load.
+	tm.tools[ExecToolName] = newExecTool(tm.logger, &tm.cfg.Tools)
+
 	for _, toolFile := range toolFiles {
 		if toolFile.IsDir() {
 			continue
@@ -135,18 +140,22 @@ func (tm *ToolManager) LoadTools() error {
 }
 
 // loadTool loads a tool from a file.
-func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (Tool, error) {
+func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (*tool, error) {
 	contents, err := fs.ReadFile(tm.fs, filepath.Join(tm.dir, toolFile.Name()))
 	if err != nil {
-		return Tool{}, fmt.Errorf("%s: %v", ErrLoadingTool, err)
+		return nil, fmt.Errorf("%s: %v", ErrLoadingTool, err)
 	}
 
 	var definition toolDefinition
 	if err := yaml.Unmarshal(contents, &definition); err != nil {
-		return Tool{}, fmt.Errorf("%s: %v", ErrParsingTool, err)
+		return nil, fmt.Errorf("%s: %v", ErrParsingTool, err)
 	}
 
-	return newTool(name, definition, commonToolSystemPrompt, tm.logger.WithGroup("tool")), nil
+	if err := validateToolDefinition(&definition); err != nil {
+		return nil, fmt.Errorf("%s: %v", ErrInvalidToolDefinition, err)
+	}
+
+	return newTool(name, definition, commonToolSystemPrompt, tm.logger.With("tool", name), &tm.cfg.Tools), nil
 }
 
 // GetTools returns all tools.
@@ -163,7 +172,7 @@ func (tm *ToolManager) GetTools() []Tool {
 func (tm *ToolManager) GetTool(name string) (Tool, error) {
 	tool, ok := tm.tools[name]
 	if !ok {
-		return Tool{}, fmt.Errorf("%s: %v", ErrToolNotFound, name)
+		return nil, fmt.Errorf("%s: %v", ErrToolNotFound, name)
 	}
 
 	return tool, nil

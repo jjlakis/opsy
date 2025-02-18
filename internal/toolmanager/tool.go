@@ -2,17 +2,17 @@ package toolmanager
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 
+	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/invopop/jsonschema"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"golang.org/x/exp/maps"
 )
 
-// Tooling is the interface for a tool.
-type Tooling interface {
+// Tool is the interface for a tool.
+type Tool interface {
 	// GetName returns the name of the tool.
 	GetName() string
 	// GetDisplayName returns the display name of the tool.
@@ -22,13 +22,15 @@ type Tooling interface {
 	// GetInputSchema returns the input schema of the tool.
 	GetInputSchema() *jsonschema.Schema
 	// Execute executes the tool.
-	Execute(input json.RawMessage, ctx context.Context) (string, error)
+	Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error)
 }
 
 // Tool is a tool that can be used by the agent.
-type Tool struct {
+type tool struct {
 	// name is the name of the tool.
 	name string
+	// config is the config for the tool.
+	config *config.ToolsConfiguration
 	// definition is the definition of the tool.
 	definition toolDefinition
 	// logger is the logger for the tool.
@@ -36,9 +38,6 @@ type Tool struct {
 	// inputSchema is the input schema of the tool.
 	inputSchema *jsonschema.Schema
 }
-
-// toolInputs is an ordered map of tool inputs.
-type toolInputs map[string]toolInput
 
 // toolDefinition is the definition of a tool.
 type toolDefinition struct {
@@ -49,11 +48,13 @@ type toolDefinition struct {
 	// SystemPrompt is the system prompt to use when the tool is selected.
 	SystemPrompt string `yaml:"system_prompt"`
 	// Inputs is the inputs for the tool.
-	Inputs *toolInputs
+	Inputs map[string]toolInput
 }
 
 // toolInput is the definition of an input for a tool.
 type toolInput struct {
+	// Type is the type of the input.
+	Type string `yaml:"type"`
 	// Description is the description of the input.
 	Description string `yaml:"description"`
 	// Default is the default value for the input.
@@ -64,62 +65,70 @@ type toolInput struct {
 	Optional bool `yaml:"optional"`
 }
 
-// commonToolInputs is the set of inputs that are common to all tools.
-var commonToolInputs = toolInputs{
-	"task": {
-		Description: "Task (without parameters) the user wants to complete with the tool.",
-		Examples: []any{
-			"Clone the repository",
-			"Get deployments",
-		},
-		Default:  "",
-		Optional: false,
-	},
-	"working_directory": {
-		Description: "Working directory to use for the tool.",
-		Examples: []any{
-			"~/projects/my-project",
-			"/tmp",
-		},
-		Default:  ".",
-		Optional: true,
-	},
+// ToolOutput is the output of a tool.
+type ToolOutput struct {
+	// Tool is the name of the tool that executed the task.
+	Tool string `json:"tool"`
+	// Result is the result from the tool execution.
+	Result any `json:"result,omitempty"`
+	// IsError indicates if the tool execution resulted in an error.
+	IsError bool `json:"is_error"`
+	// ExecutedCommand is the command that was executed.
+	ExecutedCommand *Command `json:"executed_command,omitempty"`
 }
 
+const (
+	// ErrInvalidInputType is the error returned when an input parameter has an invalid type.
+	ErrInvalidInputType = "invalid input type"
+
+	// InputTask is the input parameter for the task to complete.
+	InputTask = "task"
+	// InputWorkingDirectory is the input parameter for the working directory to use for the tool.
+	InputWorkingDirectory = "working_directory"
+	// InputCommand is the input parameter for the command to execute.
+	InputCommand = "command"
+)
+
 // newTool creates a new tool.
-func newTool(name string, definition toolDefinition, defaultPrompt string, logger *slog.Logger) Tool {
-	tool := &Tool{
-		definition:  definition,
-		inputSchema: generateInputSchema(definition),
+func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, cfg *config.ToolsConfiguration) *tool {
+	tool := &tool{
+		definition:  def,
+		inputSchema: generateInputSchema(appendCommonInputs(def.Inputs)),
+		config:      cfg,
 		logger:      logger,
-		name:        name,
+		name:        n,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", definition.SystemPrompt, defaultPrompt)
+	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, prompt)
 
-	tool.logger.With("name", name).With("display_name", definition.DisplayName).Debug("Tool loaded.")
+	tool.logger.With("name", n).With("display_name", def.DisplayName).Debug("Tool loaded.")
 
-	return *tool
+	return tool
+}
+
+// GetName returns the name of the tool.
+func (t *tool) GetName() string {
+	return t.name
 }
 
 // GetDisplayName returns the display name of the tool.
-func (t *Tool) GetDisplayName() string {
+func (t *tool) GetDisplayName() string {
 	return t.definition.DisplayName
 }
 
 // GetDescription returns the description of the tool.
-func (t *Tool) GetDescription() string {
+func (t *tool) GetDescription() string {
 	return t.definition.Description
 }
 
 // GetInputSchema returns the input schema of the tool.
-func (t *Tool) GetInputSchema() *jsonschema.Schema {
+func (t *tool) GetInputSchema() *jsonschema.Schema {
 	return t.inputSchema
 }
 
 // Execute executes the tool.
-func (t *Tool) Execute(input json.RawMessage, ctx context.Context) (string, error) {
-	// TODO: Implement the tool's logic here.
+func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
+	// TODO(t-dabasinskas): Implement the tool's logic here.
 	return nil, nil
 }
 
@@ -127,6 +136,7 @@ func (t *Tool) Execute(input json.RawMessage, ctx context.Context) (string, erro
 func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
 	allInputs := map[string]toolInput{
 		InputTask: {
+			Type:        "string",
 			Description: "Task (without parameters) the user wants to complete with the tool.",
 			Examples: []any{
 				"Clone the repository",
@@ -136,6 +146,7 @@ func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
 			Optional: false,
 		},
 		InputWorkingDirectory: {
+			Type:        "string",
 			Description: "Working directory to use for the tool.",
 			Examples: []any{
 				"~/projects/my-project",
@@ -146,11 +157,8 @@ func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
 		},
 	}
 
-	for name, input := range inputs {
-		allInputs[name] = input
-	}
-
-	return inputs
+	maps.Copy(allInputs, inputs)
+	return allInputs
 }
 
 // GenerateInputSchema generates a JSON schema for the tool's inputs.
@@ -158,9 +166,9 @@ func generateInputSchema(inputs map[string]toolInput) *jsonschema.Schema {
 	required := make([]string, 0)
 	properties := orderedmap.New[string, *jsonschema.Schema]()
 
-	for name, input := range *definition.Inputs {
+	for name, input := range inputs {
 		properties.Set(name, &jsonschema.Schema{
-			Type:        "string",
+			Type:        input.Type,
 			Description: input.Description,
 			Default:     input.Default,
 			Examples:    input.Examples,
@@ -178,4 +186,25 @@ func generateInputSchema(inputs map[string]toolInput) *jsonschema.Schema {
 	}
 
 	return schema
+}
+
+// validateToolDefinition validates a tool definition.
+func validateToolDefinition(def *toolDefinition) error {
+	if def.DisplayName == "" {
+		return fmt.Errorf("display_name is required")
+	}
+	if def.Description == "" {
+		return fmt.Errorf("description is required")
+	}
+
+	for name, input := range def.Inputs {
+		if input.Type == "" {
+			return fmt.Errorf("type is required for input %q", name)
+		}
+		if input.Description == "" {
+			return fmt.Errorf("description is required for input %q", name)
+		}
+	}
+
+	return nil
 }
