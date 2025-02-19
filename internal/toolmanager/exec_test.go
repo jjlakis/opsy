@@ -75,6 +75,9 @@ func TestExecTool_Execute(t *testing.T) {
 		assert.Equal(t, "echo -n 'test'", output.ExecutedCommand.Command)
 		assert.Equal(t, ".", output.ExecutedCommand.WorkingDirectory)
 		assert.Equal(t, 0, output.ExecutedCommand.ExitCode)
+		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
+		assert.False(t, output.ExecutedCommand.CompletedAt.IsZero())
+		assert.True(t, output.ExecutedCommand.StartedAt.Before(output.ExecutedCommand.CompletedAt))
 	})
 
 	t.Run("handles command error", func(t *testing.T) {
@@ -209,5 +212,69 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 		assert.NotNil(t, output.ExecutedCommand)
 		assert.Equal(t, "/nonexistent/directory", output.ExecutedCommand.WorkingDirectory)
 		assert.NotEqual(t, 0, output.ExecutedCommand.ExitCode)
+	})
+}
+
+// TestExecTool_Timestamps tests the timestamp functionality of executed commands.
+func TestExecTool_Timestamps(t *testing.T) {
+	logger := newTestLogger()
+	cfg := newTestConfig()
+	tool := newExecTool(logger, cfg)
+
+	t.Run("timestamps are set for quick commands", func(t *testing.T) {
+		inputs := map[string]any{
+			InputCommand:          "echo 'quick'",
+			InputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output.ExecutedCommand)
+
+		// Verify timestamps are set
+		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
+		assert.False(t, output.ExecutedCommand.CompletedAt.IsZero())
+
+		// Verify timestamp order
+		assert.True(t, output.ExecutedCommand.StartedAt.Before(output.ExecutedCommand.CompletedAt))
+
+		// Verify reasonable duration (should be very quick)
+		duration := output.ExecutedCommand.CompletedAt.Sub(output.ExecutedCommand.StartedAt)
+		assert.Less(t, duration.Milliseconds(), int64(1000), "Quick command should complete in less than 1 second")
+	})
+
+	t.Run("timestamps are set for longer running commands", func(t *testing.T) {
+		inputs := map[string]any{
+			InputCommand:          "sleep 0.5",
+			InputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output.ExecutedCommand)
+
+		// Verify timestamps are set
+		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
+		assert.False(t, output.ExecutedCommand.CompletedAt.IsZero())
+
+		// Verify timestamp order
+		assert.True(t, output.ExecutedCommand.StartedAt.Before(output.ExecutedCommand.CompletedAt))
+
+		// Verify duration is at least the sleep time
+		duration := output.ExecutedCommand.CompletedAt.Sub(output.ExecutedCommand.StartedAt)
+		assert.GreaterOrEqual(t, duration.Milliseconds(), int64(500), "Command should take at least 500ms")
+	})
+
+	t.Run("timestamps are set even when command fails", func(t *testing.T) {
+		inputs := map[string]any{
+			InputCommand:          "nonexistentcommand",
+			InputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		assert.Error(t, err)
+		assert.NotNil(t, output.ExecutedCommand)
+
+		// Verify timestamps are set even for failed commands
+		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
+		assert.False(t, output.ExecutedCommand.CompletedAt.IsZero())
+		assert.True(t, output.ExecutedCommand.StartedAt.Before(output.ExecutedCommand.CompletedAt))
 	})
 }

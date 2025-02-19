@@ -27,6 +27,10 @@ type Command struct {
 	WorkingDirectory string
 	// ExitCode is the exit code of the command.
 	ExitCode int
+	// StartedAt is the time the command started.
+	StartedAt time.Time
+	// CompletedAt is the time the command completed.
+	CompletedAt time.Time
 }
 
 // newExecTool creates a new exec tool.
@@ -89,6 +93,7 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Dir = workingDirectory
 	cmd.Stdin = nil
+	startedAt := time.Now()
 
 	logger := t.logger.With("command", cmd.String()).With("working_directory", workingDirectory)
 	logger.Debug("Executing command.")
@@ -102,6 +107,8 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 			Command:          command,
 			WorkingDirectory: workingDirectory,
 			ExitCode:         cmd.ProcessState.ExitCode(),
+			StartedAt:        startedAt,
+			CompletedAt:      time.Now(),
 		},
 	}
 
