@@ -2,11 +2,12 @@ package messagespane
 
 import (
 	"fmt"
-	"time"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 )
 
@@ -20,7 +21,9 @@ type Model struct {
 	titleStyle     lipgloss.Style
 	maxWidth       int
 	maxHeight      int
+	ready          bool
 	viewport       viewport.Model
+	messages       []string
 }
 
 // Option is a function that modifies the Model.
@@ -47,6 +50,9 @@ func New(opts ...Option) *Model {
 	return m
 }
 
+// title is the title of the messages pane.
+const title = "Messages"
+
 // Init initializes the messages pane component.
 func (m *Model) Init() tea.Cmd {
 	return nil
@@ -61,8 +67,17 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 		m.maxHeight = msg.Height
 		m.containerStyle = containerStyle(m.theme)
 		m.textStyle = textStyle(m.theme, msg.Width)
-		m.viewport.Width = msg.Width - 6
-		m.viewport.Height = m.maxHeight
+		if !m.ready {
+			m.ready = true
+			m.viewport = viewport.New(msg.Width-6, msg.Height)
+			m.viewport.SetContent(m.textStyle.Render(m.titleStyle.Render(title)))
+		} else {
+			m.viewport.Width = msg.Width - 6
+			m.viewport.Height = m.maxHeight
+		}
+	case agent.Message:
+		m.appendMessage(msg)
+		m.viewport.GotoBottom()
 	}
 
 	m.viewport, cmd = m.viewport.Update(msg)
@@ -71,26 +86,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 
 // View renders the messages pane component.
 func (m *Model) View() string {
-	content := m.titleStyle.Render("Messages") + "\n\n" + m.agentMessageView() + "\n\n" + m.toolMessageView()
-	m.viewport.SetContent(m.textStyle.Render(content))
-
 	return m.containerStyle.Render(m.viewport.View())
-}
-
-// agentMessageView renders a message from the agent.
-func (m *Model) agentMessageView() string {
-	timestamp := fmt.Sprintf("[%s] ", time.Now().Format("15:04:05"))
-	author := m.agentStyle.Render("Sredo: Hey how are you?")
-
-	return fmt.Sprintf("%s%s", timestamp, author)
-}
-
-// toolMessageView renders a message from a tool.
-func (m *Model) toolMessageView() string {
-	timestamp := fmt.Sprintf("[%s] ", time.Now().Format("15:04:05"))
-	author := m.toolStyle.Render("Sredo->Git: I'm good, thanks!")
-
-	return fmt.Sprintf("%s%s", timestamp, author)
 }
 
 // WithTheme sets the theme for the messages pane component.
@@ -137,5 +133,24 @@ func toolStyle(theme thememanager.Theme) lipgloss.Style {
 func titleStyle(theme thememanager.Theme) lipgloss.Style {
 	return lipgloss.NewStyle().
 		Foreground(theme.BaseColors.Base04).
-		Background(theme.BaseColors.Base01)
+		Background(theme.BaseColors.Base01).
+		Bold(true)
+}
+
+// appendMessage formats and appends a message to the messages pane.
+func (m *Model) appendMessage(msg agent.Message) {
+	header := m.titleStyle.Render(title)
+	timestamp := msg.Timestamp.Format("15:04:05")
+	style := m.agentStyle
+	author := agent.Name
+
+	if msg.Tool != "" {
+		author = fmt.Sprintf("%s->%s", agent.Name, msg.Tool)
+		style = m.toolStyle
+	}
+
+	message := ":\n" + strings.ReplaceAll(msg.Message, "\n\n", "\n")
+	message = fmt.Sprintf("%s%s", style.Bold(true).Render(author), style.Render(message))
+	m.messages = append(m.messages, fmt.Sprintf("[%s] %s", timestamp, style.Render(message)))
+	m.viewport.SetContent(m.textStyle.Render(fmt.Sprintf("%s\n\n%s", header, strings.Join(m.messages, "\n"))))
 }
