@@ -40,14 +40,14 @@ func main() {
 
 	logger.With("component", "main").With("task", task).Info("Started Sredo")
 
-	themeManager := thememanager.New(thememanager.WithLogger(logger.With("component", "thememanager")))
+	themeManager := thememanager.New(thememanager.WithLogger(logger))
 	if err := themeManager.LoadTheme(cfg.GetConfig().UI.Theme); err != nil {
 		log.Fatal(err)
 	}
 
 	toolManager := toolmanager.New(
 		toolmanager.WithConfig(cfg.GetConfig()),
-		toolmanager.WithLogger(logger.With("component", "toolmanager")),
+		toolmanager.WithLogger(logger),
 		toolmanager.WithContext(ctx),
 	)
 	if err := toolManager.LoadTools(); err != nil {

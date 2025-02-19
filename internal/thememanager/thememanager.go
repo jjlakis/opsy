@@ -80,7 +80,7 @@ func WithDirectory(dir string) Option {
 // WithLogger sets the logger for the theme manager.
 func WithLogger(logger *slog.Logger) Option {
 	return func(tm *ThemeManager) {
-		tm.logger = logger
+		tm.logger = logger.With("component", "thememanager")
 	}
 }
 

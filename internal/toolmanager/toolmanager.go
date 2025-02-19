@@ -89,7 +89,7 @@ func WithConfig(cfg config.Configuration) Option {
 // WithLogger sets the logger for the tool manager.
 func WithLogger(logger *slog.Logger) Option {
 	return func(tm *ToolManager) {
-		tm.logger = logger
+		tm.logger = logger.With("component", "toolmanager")
 	}
 }
 
