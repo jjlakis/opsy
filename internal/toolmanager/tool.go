@@ -2,8 +2,11 @@ package toolmanager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
+	"os/exec"
+	"time"
 
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/invopop/jsonschema"
@@ -48,7 +51,9 @@ type toolDefinition struct {
 	// SystemPrompt is the system prompt to use when the tool is selected.
 	SystemPrompt string `yaml:"system_prompt"`
 	// Inputs is the inputs for the tool.
-	Inputs map[string]toolInput
+	Inputs map[string]toolInput `yaml:"inputs"`
+	// Executable is the executable to use to execute the tool.
+	Executable string `yaml:"executable,omitempty"`
 }
 
 // toolInput is the definition of an input for a tool.
@@ -79,7 +84,17 @@ type ToolOutput struct {
 
 const (
 	// ErrInvalidInputType is the error returned when an input parameter has an invalid type.
-	ErrInvalidInputType = "invalid input type"
+	ErrInvalidToolInputType = "invalid input type"
+	// ErrToolMissingDisplayName is the error returned when a tool is missing a display name.
+	ErrToolMissingDisplayName = "missing tool display name"
+	// ErrToolMissingDescription is the error returned when a tool is missing a description.
+	ErrToolMissingDescription = "missing tool description"
+	// ErrToolInputMissingType is the error returned when a tool input is missing a type.
+	ErrToolInputMissingType = "missing tool input type"
+	// ErrToolInputMissingDescription is the error returned when a tool input is missing a description.
+	ErrToolInputMissingDescription = "missing tool input description"
+	// ErrToolExecutableNotFound is the error returned when a tool executable is not found.
+	ErrToolExecutableNotFound = "tool executable not found"
 
 	// InputTask is the input parameter for the task to complete.
 	InputTask = "task"
@@ -101,7 +116,8 @@ func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, c
 
 	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, prompt)
 
-	tool.logger.With("name", n).With("display_name", def.DisplayName).Debug("Tool loaded.")
+	tool.logger.With("name", n).With("display_name", def.DisplayName).
+		With("executable", def.Executable).Debug("Tool loaded.")
 
 	return tool
 }
@@ -128,6 +144,9 @@ func (t *tool) GetInputSchema() *jsonschema.Schema {
 
 // Execute executes the tool.
 func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.Timeout))
+	defer cancel()
+
 	// TODO(t-dabasinskas): Implement the tool's logic here.
 	return nil, nil
 }
@@ -191,18 +210,24 @@ func generateInputSchema(inputs map[string]toolInput) *jsonschema.Schema {
 // validateToolDefinition validates a tool definition.
 func validateToolDefinition(def *toolDefinition) error {
 	if def.DisplayName == "" {
-		return fmt.Errorf("display_name is required")
+		return errors.New(ErrToolMissingDisplayName)
 	}
 	if def.Description == "" {
-		return fmt.Errorf("description is required")
+		return errors.New(ErrToolMissingDescription)
 	}
 
 	for name, input := range def.Inputs {
 		if input.Type == "" {
-			return fmt.Errorf("type is required for input %q", name)
+			return fmt.Errorf("%s: %q", ErrToolInputMissingType, name)
 		}
 		if input.Description == "" {
-			return fmt.Errorf("description is required for input %q", name)
+			return fmt.Errorf("%s: %q", ErrToolInputMissingDescription, name)
+		}
+	}
+
+	if def.Executable != "" {
+		if _, err := exec.LookPath(def.Executable); err != nil {
+			return fmt.Errorf("%s: %q", ErrToolExecutableNotFound, def.Executable)
 		}
 	}
 

@@ -1,5 +1,6 @@
 ---
 display_name: Git
+executable: git
 description: Generates and executes Git commands to interact with local and remote Git repositories.
 system_prompt: |
   You are a Git expert. You can generate and execute Git commands to interact with local and remote Git repositories.

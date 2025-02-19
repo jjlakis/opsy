@@ -78,12 +78,12 @@ func (t *execTool) GetInputSchema() *jsonschema.Schema {
 func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
 	command, ok := inputs[InputCommand].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrInvalidInputType, InputCommand)
+		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, InputCommand)
 	}
 
 	workingDirectory, ok := inputs[InputWorkingDirectory].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrInvalidInputType, InputWorkingDirectory)
+		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, InputWorkingDirectory)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())

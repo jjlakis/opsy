@@ -1,0 +1,15 @@
+display_name: Executable Tool
+description: A test tool with executable
+system_prompt: |
+  This is a test tool that uses an executable.
+  It demonstrates the executable property.
+executable: ls
+inputs:
+  path:
+    type: string
+    description: Path to list contents of
+    default: "."
+    examples:
+      - "/tmp"
+      - "~/Documents"
+    optional: true

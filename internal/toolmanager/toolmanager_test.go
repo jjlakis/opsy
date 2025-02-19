@@ -2,6 +2,7 @@ package toolmanager
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -48,12 +49,18 @@ func TestLoadTools(t *testing.T) {
 		require.NoError(t, err)
 
 		tools := tm.GetTools()
-		assert.Len(t, tools, 2) // Should load test_tool.yaml and exec tool
+		assert.Len(t, tools, 3) // Should load test_tool.yaml, executable_tool.yaml and exec tool
 
 		tool, err := tm.GetTool("test_tool")
 		require.NoError(t, err)
 		assert.Equal(t, "Test Tool", tool.GetDisplayName())
 		assert.Equal(t, "A tool for testing purposes", tool.GetDescription())
+
+		// Verify executable tool is loaded
+		executableTool, err := tm.GetTool("executable_tool")
+		require.NoError(t, err)
+		assert.Equal(t, "Executable Tool", executableTool.GetDisplayName())
+		assert.Equal(t, "A test tool with executable", executableTool.GetDescription())
 
 		// Verify exec tool is loaded
 		execTool, err := tm.GetTool("exec")
@@ -82,22 +89,22 @@ func TestLoadTools(t *testing.T) {
 			},
 		}
 		err := validateToolDefinition(def)
-		assert.ErrorContains(t, err, `type is required for input "test_input"`)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingType, "test_input"))
 
 		def.Inputs["test_input"] = toolInput{
 			Type: "string", // Missing description
 		}
 		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, `description is required for input "test_input"`)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingDescription, "test_input"))
 
 		def.DisplayName = ""
 		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, "display_name is required")
+		assert.ErrorContains(t, err, ErrToolMissingDisplayName)
 
 		def.DisplayName = "Test Tool"
 		def.Description = ""
 		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, "description is required")
+		assert.ErrorContains(t, err, ErrToolMissingDescription)
 	})
 
 	t.Run("handles non-existent directory", func(t *testing.T) {
@@ -184,7 +191,7 @@ func TestGetTools(t *testing.T) {
 	require.NoError(t, tm.LoadTools())
 
 	tools := tm.GetTools()
-	assert.Len(t, tools, 2) // Should have test_tool and exec tool
+	assert.Len(t, tools, 3) // Should have test_tool, executable_tool and exec tool
 
 	// Find and verify test_tool
 	var testTool Tool
@@ -196,6 +203,17 @@ func TestGetTools(t *testing.T) {
 	}
 	require.NotNil(t, testTool, "test_tool should be present")
 	assert.Equal(t, "Test Tool", testTool.GetDisplayName())
+
+	// Find and verify executable_tool
+	var executableTool Tool
+	for _, t := range tools {
+		if t.GetName() == "executable_tool" {
+			executableTool = t
+			break
+		}
+	}
+	require.NotNil(t, executableTool, "executable_tool should be present")
+	assert.Equal(t, "Executable Tool", executableTool.GetDisplayName())
 
 	// Find and verify exec tool
 	var execTool Tool

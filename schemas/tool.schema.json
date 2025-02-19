@@ -22,6 +22,10 @@
       "type": "string",
       "description": "The system prompt to use when the tool is selected"
     },
+    "executable": {
+      "type": "string",
+      "description": "The executable the tool relies on"
+    },
     "inputs": {
       "type": "object",
       "description": "The inputs for the tool",

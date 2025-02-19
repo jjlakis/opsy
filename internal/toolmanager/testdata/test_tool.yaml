@@ -1,19 +1,19 @@
-display_name: "Test Tool"
-description: "A tool for testing purposes"
-system_prompt: "You are a test tool."
+display_name: Test Tool
+description: A tool for testing purposes
+system_prompt: You are a test tool.
 inputs:
   test_input:
-    type: "string"
-    description: "A test input parameter"
-    default: "default value"
+    type: string
+    description: A test input parameter
+    default: default value
     examples:
-      - "example 1"
-      - "example 2"
+      - example 1
+      - example 2
     optional: false
   optional_input:
-    type: "string"
-    description: "An optional test input"
+    type: string
+    description: An optional test input
     default: ""
     examples:
-      - "optional example"
+      - optional example
     optional: true

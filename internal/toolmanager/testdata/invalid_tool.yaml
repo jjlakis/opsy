@@ -1,3 +1,5 @@
-display_name: "Invalid Tool"
-description: "A tool with invalid YAML
-this is invalid YAML content
+display_name: Invalid Tool
+description: A tool with invalid executable
+system_prompt: This is an invalid tool.
+executable: non-existent-executable
+inputs: {}

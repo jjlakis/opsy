@@ -152,7 +152,7 @@ func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (*tool, error
 	}
 
 	if err := validateToolDefinition(&definition); err != nil {
-		return nil, fmt.Errorf("%s: %v", ErrInvalidToolDefinition, err)
+		return nil, fmt.Errorf("%s: %s: %v", ErrInvalidToolDefinition, name, err)
 	}
 
 	return newTool(name, definition, commonToolSystemPrompt, tm.logger.With("tool", name), &tm.cfg.Tools), nil

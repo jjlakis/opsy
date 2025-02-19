@@ -2,6 +2,7 @@ package toolmanager
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 	"testing"
@@ -220,30 +221,55 @@ func TestValidateToolDefinition(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("validates tool definition with executable", func(t *testing.T) {
+		def := &toolDefinition{
+			DisplayName:  "Valid Tool",
+			Description:  "Valid Description",
+			SystemPrompt: "Valid Prompt",
+			Executable:   "ls", // Common executable that should exist
+			Inputs:       map[string]toolInput{},
+		}
+		err := validateToolDefinition(def)
+		assert.NoError(t, err)
+	})
+
+	t.Run("validates tool definition with non-existent executable", func(t *testing.T) {
+		def := &toolDefinition{
+			DisplayName:  "Invalid Tool",
+			Description:  "Invalid Description",
+			SystemPrompt: "Invalid Prompt",
+			Executable:   "non-existent-executable",
+			Inputs:       map[string]toolInput{},
+		}
+		err := validateToolDefinition(def)
+		assert.ErrorContains(t, err, ErrToolExecutableNotFound)
+	})
+
 	t.Run("validates empty tool definition", func(t *testing.T) {
 		def := &toolDefinition{}
 		err := validateToolDefinition(def)
-		assert.ErrorContains(t, err, "display_name is required")
+		assert.ErrorContains(t, err, ErrToolMissingDisplayName)
 
 		def.DisplayName = "Tool"
 		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, "description is required")
+		assert.ErrorContains(t, err, ErrToolMissingDescription)
 	})
 
 	t.Run("validates input fields", func(t *testing.T) {
 		def := &toolDefinition{
-			DisplayName: "Tool",
-			Description: "Description",
+			DisplayName:  "Tool",
+			Description:  "Description",
+			SystemPrompt: "Prompt",
 			Inputs: map[string]toolInput{
 				"input1": {},
 			},
 		}
 		err := validateToolDefinition(def)
-		assert.ErrorContains(t, err, `type is required for input "input1"`)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingType, "input1"))
 
 		def.Inputs["input1"] = toolInput{Type: "string"}
 		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, `description is required for input "input1"`)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingDescription, "input1"))
 
 		def.Inputs["input1"] = toolInput{
 			Type:        "string",
@@ -255,8 +281,9 @@ func TestValidateToolDefinition(t *testing.T) {
 
 	t.Run("allows empty inputs", func(t *testing.T) {
 		def := &toolDefinition{
-			DisplayName: "Tool",
-			Description: "Description",
+			DisplayName:  "Tool",
+			Description:  "Description",
+			SystemPrompt: "Prompt",
 		}
 		err := validateToolDefinition(def)
 		assert.NoError(t, err)

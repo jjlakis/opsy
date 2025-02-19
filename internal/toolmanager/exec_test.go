@@ -105,7 +105,7 @@ func TestExecTool_Execute(t *testing.T) {
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ErrInvalidInputType)
+		assert.Contains(t, err.Error(), ErrInvalidToolInputType)
 		assert.Nil(t, output)
 	})
 
@@ -116,7 +116,7 @@ func TestExecTool_Execute(t *testing.T) {
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ErrInvalidInputType)
+		assert.Contains(t, err.Error(), ErrInvalidToolInputType)
 		assert.Nil(t, output)
 	})
 }
