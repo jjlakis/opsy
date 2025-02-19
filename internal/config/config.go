@@ -127,6 +127,14 @@ func New() *Config {
 
 	config := &Config{
 		homePath: homeDir,
+		configuration: Configuration{
+			Anthropic: AnthropicConfiguration{},
+			Tools: ToolsConfiguration{
+				Exec: ExecToolConfiguration{},
+			},
+			Logging: LoggingConfiguration{},
+			UI:      UIConfiguration{},
+		},
 	}
 
 	config.setDefaults()

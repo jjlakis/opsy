@@ -869,3 +869,47 @@ tools:
 		})
 	}
 }
+
+// TestNewGetConfig_SafeAccess verifies that:
+// - GetConfig can be called immediately after New()
+// - All configuration fields are accessible without nil panics
+// - Default struct values are present
+func TestNewGetConfig_SafeAccess(t *testing.T) {
+	_, cleanup := setupTestEnv(t)
+	defer cleanup()
+
+	// Get config immediately after New() without LoadConfig()
+	config := New().GetConfig()
+
+	// Test safe access to all configuration fields
+	t.Run("safe access to all fields", func(t *testing.T) {
+		// UI Configuration
+		assert.Empty(t, config.UI.Theme)
+
+		// Logging Configuration
+		assert.Empty(t, config.Logging.Path)
+		assert.Empty(t, config.Logging.Level)
+
+		// Anthropic Configuration
+		assert.Empty(t, config.Anthropic.APIKey)
+		assert.Empty(t, config.Anthropic.Model)
+		assert.Zero(t, config.Anthropic.Temperature)
+		assert.Zero(t, config.Anthropic.MaxTokens)
+
+		// Tools Configuration
+		assert.Zero(t, config.Tools.Timeout)
+		assert.Zero(t, config.Tools.Exec.Timeout)
+		assert.Empty(t, config.Tools.Exec.Shell)
+	})
+
+	// Verify the struct is properly initialized
+	t.Run("configuration struct is initialized", func(t *testing.T) {
+		// Using reflection to verify the struct is not nil
+		assert.NotNil(t, config)
+		assert.NotNil(t, config.UI)
+		assert.NotNil(t, config.Logging)
+		assert.NotNil(t, config.Anthropic)
+		assert.NotNil(t, config.Tools)
+		assert.NotNil(t, config.Tools.Exec)
+	})
+}
