@@ -75,7 +75,7 @@ type ToolOutput struct {
 	// Tool is the name of the tool that executed the task.
 	Tool string `json:"tool"`
 	// Result is the result from the tool execution.
-	Result any `json:"result,omitempty"`
+	Result string `json:"result,omitempty"`
 	// IsError indicates if the tool execution resulted in an error.
 	IsError bool `json:"is_error"`
 	// ExecutedCommand is the command that was executed.

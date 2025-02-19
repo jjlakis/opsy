@@ -103,8 +103,8 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 	toolOutput, err := cmd.CombinedOutput()
 	output := &ToolOutput{
 		Tool:    t.GetName(),
+		Result:  strings.TrimSpace(string(toolOutput)),
 		IsError: false,
-		Result:  string(toolOutput),
 		ExecutedCommand: &Command{
 			Command:          command,
 			WorkingDirectory: workingDirectory,
@@ -115,8 +115,7 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 	}
 
 	if toolOutput != nil {
-		output.ExecutedCommand.Output = strings.TrimSpace(string(toolOutput))
-		output.Result = output.ExecutedCommand.Output
+		output.ExecutedCommand.Output = output.Result
 	}
 
 	if err != nil {

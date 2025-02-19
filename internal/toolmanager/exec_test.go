@@ -191,7 +191,7 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, output)
 		assert.Equal(t, ExecToolName, output.Tool)
-		assert.Contains(t, output.Result.(string), "/tmp")
+		assert.Contains(t, output.Result, "/tmp")
 		assert.False(t, output.IsError)
 		assert.NotNil(t, output.ExecutedCommand)
 		assert.Equal(t, "/tmp", output.ExecutedCommand.WorkingDirectory)
