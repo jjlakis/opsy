@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 )
 
@@ -33,7 +34,7 @@ type Option func(*Model)
 // New creates a new footer component.
 func New(opts ...Option) *Model {
 	m := &Model{
-		status:     "Ready",
+		status:     agent.StatusReady,
 		parameters: Parameters{},
 	}
 
@@ -58,6 +59,8 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.maxWidth = msg.Width
 		m.containerStyle = containerStyle(m.theme, m.maxWidth)
+	case agent.Status:
+		m.status = string(msg)
 	}
 
 	return m, nil

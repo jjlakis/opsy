@@ -58,6 +58,7 @@ func main() {
 	communication := &agent.Communication{
 		Commands: make(chan toolmanager.Command),
 		Messages: make(chan agent.Message),
+		Status:   make(chan agent.Status),
 	}
 
 	tui := tui.New(
@@ -67,6 +68,18 @@ func main() {
 		tui.WithToolsCount(len(toolManager.GetTools())),
 	)
 	p := tea.NewProgram(tui, tea.WithAltScreen(), tea.WithMouseCellMotion(), tea.WithContext(ctx))
+
+	agnt := agent.New(
+		agent.WithConfig(cfg.GetConfig()),
+		agent.WithLogger(logger),
+		agent.WithContext(ctx),
+		agent.WithCommunication(communication),
+	)
+	go func() {
+		agnt.Run(&agent.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
+		communication.Status <- agent.StatusFinished
+		logger.With("task", task).Info("Sredo finished")
+	}()
 
 	go func() {
 		for msg := range communication.Messages {
@@ -80,15 +93,10 @@ func main() {
 		}
 	}()
 
-	agnt := agent.New(
-		agent.WithConfig(cfg.GetConfig()),
-		agent.WithLogger(logger),
-		agent.WithContext(ctx),
-		agent.WithCommunication(communication),
-	)
 	go func() {
-		agnt.Run(&agent.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
-		logger.With("task", task).Info("Sredo finished")
+		for msg := range communication.Status {
+			p.Send(msg)
+		}
 	}()
 
 	if _, err := p.Run(); err != nil {
