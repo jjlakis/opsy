@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 	"github.com/datolabs-io/sredo/internal/toolmanager"
@@ -38,7 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger.With("component", "main").With("task", task).Info("Started Sredo")
+	logger.With("task", task).Info("Started Sredo")
 
 	themeManager := thememanager.New(thememanager.WithLogger(logger))
 	if err := themeManager.LoadTheme(cfg.GetConfig().UI.Theme); err != nil {
@@ -54,6 +55,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	communication := &agent.Communication{
+		Commands: make(chan toolmanager.Command),
+		Messages: make(chan agent.Message),
+	}
+
 	tui := tui.New(
 		tui.WithTheme(themeManager.GetTheme()),
 		tui.WithConfig(cfg.GetConfig()),
@@ -61,11 +67,33 @@ func main() {
 		tui.WithToolsCount(len(toolManager.GetTools())),
 	)
 	p := tea.NewProgram(tui, tea.WithAltScreen(), tea.WithMouseCellMotion(), tea.WithContext(ctx))
+
+	go func() {
+		for msg := range communication.Messages {
+			p.Send(msg)
+		}
+	}()
+
+	go func() {
+		for msg := range communication.Commands {
+			p.Send(msg)
+		}
+	}()
+
+	agnt := agent.New(
+		agent.WithConfig(cfg.GetConfig()),
+		agent.WithLogger(logger),
+		agent.WithContext(ctx),
+		agent.WithCommunication(communication),
+	)
+	go func() {
+		agnt.Run(&agent.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
+		logger.With("task", task).Info("Sredo finished")
+	}()
+
 	if _, err := p.Run(); err != nil {
 		log.Fatal(err)
 	}
-
-	logger.With("component", "main").With("task", task).Info("Sredo finished")
 }
 
 // getTask returns the task from the command line arguments.
