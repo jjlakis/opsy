@@ -51,20 +51,20 @@ func TestLoadTools(t *testing.T) {
 		tools := tm.GetTools()
 		assert.Len(t, tools, 3) // Should load test_tool.yaml, executable_tool.yaml and exec tool
 
-		tool, err := tm.GetTool("test_tool")
-		require.NoError(t, err)
+		tool, ok := tools["test_tool"]
+		require.True(t, ok)
 		assert.Equal(t, "Test Tool", tool.GetDisplayName())
 		assert.Equal(t, "A tool for testing purposes", tool.GetDescription())
 
 		// Verify executable tool is loaded
-		executableTool, err := tm.GetTool("executable_tool")
-		require.NoError(t, err)
+		executableTool, ok := tools["executable_tool"]
+		require.True(t, ok)
 		assert.Equal(t, "Executable Tool", executableTool.GetDisplayName())
 		assert.Equal(t, "A test tool with executable", executableTool.GetDescription())
 
 		// Verify exec tool is loaded
-		execTool, err := tm.GetTool("exec")
-		require.NoError(t, err)
+		execTool, ok := tools[ExecToolName]
+		require.True(t, ok)
 		assert.Equal(t, "Exec", execTool.GetDisplayName())
 	})
 
@@ -193,36 +193,18 @@ func TestGetTools(t *testing.T) {
 	tools := tm.GetTools()
 	assert.Len(t, tools, 3) // Should have test_tool, executable_tool and exec tool
 
-	// Find and verify test_tool
-	var testTool Tool
-	for _, t := range tools {
-		if t.GetName() == "test_tool" {
-			testTool = t
-			break
-		}
-	}
-	require.NotNil(t, testTool, "test_tool should be present")
+	// Verify test_tool
+	testTool, ok := tools["test_tool"]
+	require.True(t, ok, "test_tool should be present")
 	assert.Equal(t, "Test Tool", testTool.GetDisplayName())
 
-	// Find and verify executable_tool
-	var executableTool Tool
-	for _, t := range tools {
-		if t.GetName() == "executable_tool" {
-			executableTool = t
-			break
-		}
-	}
-	require.NotNil(t, executableTool, "executable_tool should be present")
+	// Verify executable_tool
+	executableTool, ok := tools["executable_tool"]
+	require.True(t, ok, "executable_tool should be present")
 	assert.Equal(t, "Executable Tool", executableTool.GetDisplayName())
 
-	// Find and verify exec tool
-	var execTool Tool
-	for _, t := range tools {
-		if t.GetName() == ExecToolName {
-			execTool = t
-			break
-		}
-	}
-	require.NotNil(t, execTool, "exec tool should be present")
+	// Verify exec tool
+	execTool, ok := tools[ExecToolName]
+	require.True(t, ok, "exec tool should be present")
 	assert.Equal(t, "Exec", execTool.GetDisplayName())
 }

@@ -299,11 +299,18 @@ func TestToolInterfaceCompliance(t *testing.T) {
 	var _ Tool = (*execTool)(nil)
 
 	// Create and test a concrete tool instance
-	logger := slog.New(slog.NewTextHandler(nil, nil))
-	cfg := &config.ToolsConfiguration{}
+	logger := slog.New(slog.DiscardHandler)
+	cfg := &config.ToolsConfiguration{
+		Timeout: 120,
+		Exec: config.ExecToolConfiguration{
+			Timeout: 60,
+			Shell:   "/bin/bash",
+		},
+	}
 	def := toolDefinition{
-		DisplayName: "Test Tool",
-		Description: "Test Description",
+		DisplayName:  "Test Tool",
+		Description:  "Test Description",
+		SystemPrompt: "Test Prompt",
 		Inputs: map[string]toolInput{
 			"test": {
 				Type:        "string",

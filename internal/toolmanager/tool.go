@@ -106,6 +106,9 @@ const (
 
 // newTool creates a new tool.
 func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, cfg *config.ToolsConfiguration) *tool {
+	logger = logger.WithGroup("tool").With("name", n).With("display_name", def.DisplayName).
+		With("description", def.Description).With("executable", def.Executable)
+
 	tool := &tool{
 		definition:  def,
 		inputSchema: generateInputSchema(appendCommonInputs(def.Inputs)),
@@ -115,9 +118,7 @@ func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, c
 	}
 
 	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, prompt)
-
-	tool.logger.With("name", n).With("display_name", def.DisplayName).
-		With("executable", def.Executable).Debug("Tool loaded.")
+	tool.logger.Debug("Tool loaded.")
 
 	return tool
 }
@@ -144,6 +145,8 @@ func (t *tool) GetInputSchema() *jsonschema.Schema {
 
 // Execute executes the tool.
 func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
+	t.logger.With("inputs", inputs).Info("Executing tool.")
+
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.Timeout))
 	defer cancel()
 

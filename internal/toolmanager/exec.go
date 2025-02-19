@@ -27,6 +27,8 @@ type Command struct {
 	WorkingDirectory string
 	// ExitCode is the exit code of the command.
 	ExitCode int
+	// Output is the output of the command.
+	Output string
 	// StartedAt is the time the command started.
 	StartedAt time.Time
 	// CompletedAt is the time the command completed.
@@ -113,7 +115,8 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 	}
 
 	if toolOutput != nil {
-		output.Result = strings.TrimSpace(string(toolOutput))
+		output.ExecutedCommand.Output = strings.TrimSpace(string(toolOutput))
+		output.Result = output.ExecutedCommand.Output
 	}
 
 	if err != nil {

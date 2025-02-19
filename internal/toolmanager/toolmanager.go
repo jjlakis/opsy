@@ -41,7 +41,7 @@ type Manager interface {
 	// LoadTools loads the tools from the tool manager.
 	LoadTools() error
 	// GetTools returns all tools.
-	GetTools() []Tool
+	GetTools() map[string]Tool
 	// GetTool returns a tool by name.
 	GetTool(name string) (Tool, error)
 }
@@ -155,17 +155,12 @@ func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (*tool, error
 		return nil, fmt.Errorf("%s: %s: %v", ErrInvalidToolDefinition, name, err)
 	}
 
-	return newTool(name, definition, commonToolSystemPrompt, tm.logger.With("tool", name), &tm.cfg.Tools), nil
+	return newTool(name, definition, commonToolSystemPrompt, tm.logger, &tm.cfg.Tools), nil
 }
 
 // GetTools returns all tools.
-func (tm *ToolManager) GetTools() []Tool {
-	tools := make([]Tool, 0, len(tm.tools))
-	for _, tool := range tm.tools {
-		tools = append(tools, tool)
-	}
-
-	return tools
+func (tm *ToolManager) GetTools() map[string]Tool {
+	return tm.tools
 }
 
 // GetTool returns a tool by name.
