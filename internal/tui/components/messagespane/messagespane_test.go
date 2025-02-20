@@ -3,6 +3,7 @@ package messagespane
 import (
 	"regexp"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/datolabs-io/sredo/internal/agent"
@@ -38,11 +39,7 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, m)
 	assert.Equal(t, theme, m.theme)
 	assert.NotNil(t, m.viewport)
-	assert.NotNil(t, m.containerStyle)
-	assert.NotNil(t, m.textStyle)
-	assert.NotNil(t, m.agentStyle)
-	assert.NotNil(t, m.toolStyle)
-	assert.NotNil(t, m.titleStyle)
+	assert.Empty(t, m.messages)
 }
 
 // TestUpdate tests the update function of the messages pane component.
@@ -61,18 +58,21 @@ func TestUpdate(t *testing.T) {
 	newModel, cmd := m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 	assert.NotNil(t, newModel)
 	assert.Nil(t, cmd)
-	assert.Equal(t, 100, newModel.maxWidth)
+	assert.Equal(t, 94, newModel.maxWidth) // Width - 6 for padding
 	assert.Equal(t, 50, newModel.maxHeight)
-	assert.Equal(t, 94, newModel.viewport.Width) // maxWidth - 6 for padding
+	assert.Equal(t, 94, newModel.viewport.Width)
 	assert.Equal(t, 50, newModel.viewport.Height)
 
-	// Verify text style is updated with new dimensions
-	oldTextStyle := m.textStyle
-	oldContainerStyle := m.containerStyle
-	m, _ = m.Update(tea.WindowSizeMsg{Width: 200, Height: 100})
-	assert.NotEqual(t, oldTextStyle, m.textStyle, "text style should be updated with new width")
-	assert.Equal(t, oldContainerStyle, m.containerStyle, "container style should remain the same")
-	assert.Equal(t, 194, m.textStyle.GetWidth(), "text style width should be updated to new width - 6")
+	// Test message handling
+	testMsg := agent.Message{
+		Message:   "Test message",
+		Tool:      "",
+		Timestamp: time.Now(),
+	}
+	m, cmd = m.Update(testMsg)
+	assert.Nil(t, cmd)
+	assert.Len(t, m.messages, 1)
+	assert.Equal(t, testMsg, m.messages[0])
 }
 
 // TestView tests the view function of the messages pane component.
@@ -97,21 +97,31 @@ func TestView(t *testing.T) {
 	// Set dimensions to test rendering
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 
-	// Add test messages
-	m.Update(agent.Message{
-		Message: "Hello",
-		Tool:    "",
-	})
-	m.Update(agent.Message{
-		Message: "Running git command",
-		Tool:    "Git",
-	})
-
+	// Test initial view (empty messages)
 	view := stripANSI(m.View())
 	assert.NotEmpty(t, view)
 	assert.Contains(t, view, "Messages")
+
+	// Add test messages
+	now := time.Now()
+	m.Update(agent.Message{
+		Message:   "Hello",
+		Tool:      "",
+		Timestamp: now,
+	})
+	m.Update(agent.Message{
+		Message:   "Running git command",
+		Tool:      "Git",
+		Timestamp: now,
+	})
+
+	// Test view with messages
+	view = stripANSI(m.View())
+	assert.Contains(t, view, "Messages")
 	assert.Contains(t, view, "Sredo:")
 	assert.Contains(t, view, "Sredo->Git:")
+	assert.Contains(t, view, "Hello")
+	assert.Contains(t, view, "Running git command")
 }
 
 // TestInit tests the initialization of the messages pane component.

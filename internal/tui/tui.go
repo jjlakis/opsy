@@ -3,6 +3,7 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 	"github.com/datolabs-io/sredo/internal/tui/components/commandspane"
@@ -61,11 +62,7 @@ func (m *model) Init() tea.Cmd {
 
 // Update handles all messages and updates the TUI
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var headerMsg, footerMsg, messagesMsg, commandsMsg tea.Msg
-	headerMsg = msg
-	footerMsg = msg
-	messagesMsg = msg
-	commandsMsg = msg
+	var headerCmd, footerCmd, messagesCmd, commandsCmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -77,24 +74,34 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		footerHeight := lipgloss.Height(m.footer.View())
 		remainingHeight := msg.Height - headerHeight - footerHeight - 6
 
-		messagesMsg = tea.WindowSizeMsg{
+		// Create specific window size messages for each component
+		m.header, headerCmd = m.header.Update(tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: headerHeight,
+		})
+		m.footer, footerCmd = m.footer.Update(tea.WindowSizeMsg{
+			Width:  msg.Width,
+			Height: footerHeight,
+		})
+		m.messagesPane, messagesCmd = m.messagesPane.Update(tea.WindowSizeMsg{
 			Width:  msg.Width,
 			Height: remainingHeight * 2 / 3,
-		}
-		commandsMsg = tea.WindowSizeMsg{
+		})
+		m.commandsPane, commandsCmd = m.commandsPane.Update(tea.WindowSizeMsg{
 			Width:  msg.Width,
 			Height: remainingHeight * 1 / 3,
-		}
+		})
+	case agent.Message:
+		// Messages from agent should only go to messages pane
+		m.messagesPane, messagesCmd = m.messagesPane.Update(msg)
+	default:
+		// For any other messages, let all components handle them
+		m.header, headerCmd = m.header.Update(msg)
+		m.footer, footerCmd = m.footer.Update(msg)
+		m.messagesPane, messagesCmd = m.messagesPane.Update(msg)
+		m.commandsPane, commandsCmd = m.commandsPane.Update(msg)
 	}
 
-	// Update all components with their respective messages
-	var headerCmd, footerCmd, messagesCmd, commandsCmd tea.Cmd
-	m.header, headerCmd = m.header.Update(headerMsg)
-	m.footer, footerCmd = m.footer.Update(footerMsg)
-	m.messagesPane, messagesCmd = m.messagesPane.Update(messagesMsg)
-	m.commandsPane, commandsCmd = m.commandsPane.Update(commandsMsg)
-
-	// Batch all commands
 	return m, tea.Batch(headerCmd, footerCmd, messagesCmd, commandsCmd)
 }
 
