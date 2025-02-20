@@ -1,7 +1,6 @@
 package thememanager
 
 import (
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
@@ -9,11 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/datolabs-io/sredo/assets"
 	"gopkg.in/yaml.v3"
 )
-
-//go:embed themes
-var defaultFS embed.FS
 
 const (
 	// ErrThemeNotFound is returned when a theme is not found.
@@ -55,7 +52,7 @@ type Option func(*ThemeManager)
 // New creates a new theme manager.
 func New(opts ...Option) *ThemeManager {
 	tm := &ThemeManager{
-		fs:     defaultFS,
+		fs:     assets.Themes,
 		dir:    themesDir,
 		logger: slog.New(slog.DiscardHandler),
 	}

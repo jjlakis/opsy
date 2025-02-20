@@ -1,11 +1,11 @@
 {
   "yaml.schemas": {
     "./schemas/tool.schema.json": [
-      "internal/toolmanager/tools/*.yaml",
+      "assets/tools/*.yaml",
       "internal/toolmanager/testdata/*.yaml"
     ],
     "./schemas/theme.schema.json": [
-      "internal/thememanager/themes/*.yaml",
+      "assets/themes/*.yaml",
       "internal/thememanager/testdata/*.yaml"
     ],
     "./schemas/config.schema.json": [

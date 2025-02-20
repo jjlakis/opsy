@@ -2,7 +2,6 @@ package toolmanager
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -10,12 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/datolabs-io/sredo/assets"
 	"github.com/datolabs-io/sredo/internal/config"
 	"gopkg.in/yaml.v3"
 )
-
-//go:embed tools
-var defaultFS embed.FS
 
 const (
 	// ErrLoadingTools is the error message for failed to load tools.
@@ -65,7 +62,7 @@ func New(opts ...Option) *ToolManager {
 		cfg:    config.New().GetConfig(),
 		logger: slog.New(slog.DiscardHandler),
 		ctx:    context.Background(),
-		fs:     defaultFS,
+		fs:     assets.Tools,
 		dir:    toolsDir,
 		tools:  make(map[string]Tool),
 	}
