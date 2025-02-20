@@ -139,8 +139,12 @@ func (m *Model) renderCommands() {
 		timestamp := m.timestampStyle().Render(fmt.Sprintf("[%s]", cmd.StartedAt.Format("15:04:05")))
 		workdir := m.workdirStyle().Render(cmd.WorkingDirectory)
 
-		commandStyle := m.commandStyle().Width(m.maxWidth)
-		command := commandStyle.Render(wrap.String(cmd.Command, m.maxWidth-lipgloss.Width(timestamp)-lipgloss.Width(workdir)))
+		commandWidth := m.maxWidth-lipgloss.Width(timestamp)-lipgloss.Width(workdir)
+		command := m.commandStyle().Width(commandWidth).Render(cmd.Command)
+
+		if lipgloss.Width(cmd.Command) >= commandWidth {
+			command = m.commandStyle().Width(m.maxWidth).Render(wrap.String(cmd.Command, commandWidth))
+		}
 
 		output.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, command))
 		output.WriteString("\n\n")
