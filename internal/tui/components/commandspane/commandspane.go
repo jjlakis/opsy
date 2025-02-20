@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 	"github.com/datolabs-io/sredo/internal/tool"
+	"github.com/muesli/reflow/wrap"
 )
 
 // Model represents the commands pane component.
@@ -138,8 +139,8 @@ func (m *Model) renderCommands() {
 		timestamp := m.timestampStyle().Render(fmt.Sprintf("[%s]", cmd.StartedAt.Format("15:04:05")))
 		workdir := m.workdirStyle().Render(cmd.WorkingDirectory)
 
-		commandStyle := m.commandStyle().Width(m.maxWidth - lipgloss.Width(timestamp) - lipgloss.Width(workdir))
-		command := commandStyle.Render(cmd.Command)
+		commandStyle := m.commandStyle().Width(m.maxWidth)
+		command := commandStyle.Render(wrap.String(cmd.Command, m.maxWidth-lipgloss.Width(timestamp)-lipgloss.Width(workdir)))
 
 		output.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, command))
 		output.WriteString("\n\n")
