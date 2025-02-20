@@ -2,6 +2,7 @@ package tool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -174,10 +175,14 @@ func TestToolExecute(t *testing.T) {
 		tool := New("test", Definition{
 			DisplayName: "Test Tool",
 			Description: "Test Description",
-			Inputs:      map[string]Input{}, // Initialize with empty inputs
+			Inputs:      map[string]Input{},
 		}, logger, cfg, runner)
 
-		input := map[string]any{"test": "value"}
+		input := map[string]any{
+			"test":                "value",
+			inputTask:             "test task",
+			inputWorkingDirectory: ".",
+		}
 		output, err := tool.Execute(input, context.Background())
 		require.NoError(t, err)
 		assert.NotNil(t, output)
@@ -185,6 +190,74 @@ func TestToolExecute(t *testing.T) {
 		assert.Empty(t, output.Result)
 		assert.False(t, output.IsError)
 		assert.Nil(t, output.ExecutedCommand)
+	})
+
+	t.Run("handles runner error", func(t *testing.T) {
+		expectedErr := errors.New("test error")
+		runner := newMockRunner(nil, expectedErr)
+		tool := New("test", Definition{
+			DisplayName: "Test Tool",
+			Description: "Test Description",
+			Inputs:      map[string]Input{},
+		}, logger, cfg, runner)
+
+		input := map[string]any{
+			"test":                "value",
+			inputTask:             "test task",
+			inputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(input, context.Background())
+		assert.ErrorIs(t, err, expectedErr)
+		assert.NotNil(t, output)
+		assert.Equal(t, "Test Tool", output.Tool)
+		assert.Empty(t, output.Result)
+		assert.True(t, output.IsError)
+		assert.Nil(t, output.ExecutedCommand)
+	})
+
+	t.Run("returns runner output", func(t *testing.T) {
+		expectedOutput := []Output{{
+			Tool:   "test",
+			Result: "test result",
+		}}
+		runner := newMockRunner(expectedOutput, nil)
+		tool := New("test", Definition{
+			DisplayName: "Test Tool",
+			Description: "Test Description",
+			Inputs:      map[string]Input{},
+		}, logger, cfg, runner)
+
+		input := map[string]any{
+			"test":                "value",
+			inputTask:             "test task",
+			inputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(input, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, "Test Tool", output.Tool)
+		assert.Equal(t, "test result", output.Result)
+		assert.False(t, output.IsError)
+		assert.Nil(t, output.ExecutedCommand)
+	})
+
+	t.Run("validates task input", func(t *testing.T) {
+		runner := newMockRunner(nil, nil)
+		tool := New("test", Definition{
+			DisplayName: "Test Tool",
+			Description: "Test Description",
+			Inputs:      map[string]Input{},
+		}, logger, cfg, runner)
+
+		input := map[string]any{
+			"test":                "value",
+			inputTask:             123, // Invalid type
+			inputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(input, context.Background())
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), ErrInvalidToolInputType)
+		assert.Nil(t, output)
 	})
 }
 

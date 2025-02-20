@@ -110,8 +110,8 @@ const (
 	You can execute a tool by providing the tool name and the tool's inputs.
 	`
 	userPrompt = `
-	Generate and execute a %s Shell command to complete the following task.
-	The task and required parameters are provided in the JSON below:
+	Generate and execute a %s Shell command to complete the following task: %s.
+	Additional task parameters and context are provided in the JSON below:
 	`
 )
 
@@ -163,7 +163,12 @@ func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, err
 	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())
 	defer cancel()
 
-	task := fmt.Sprintf("%s\n```json\n%s\n```", fmt.Sprintf(userPrompt, t.definition.Executable), inputs)
+	task, ok := inputs[inputTask].(string)
+	if !ok {
+		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputTask)
+	}
+
+	task = fmt.Sprintf("%s\n```json\n%s\n```", fmt.Sprintf(userPrompt, t.definition.Executable, task), inputs)
 	options := &RunOptions{
 		Task:   task,
 		Prompt: t.definition.SystemPrompt,
