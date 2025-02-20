@@ -102,6 +102,7 @@ func (m *Model) messageStyle() lipgloss.Style {
 		Background(m.theme.BaseColors.Base03).
 		Margin(1, 0, 1, 0).
 		Padding(1, 2, 1, 1).
+		MarginBackground(m.theme.BaseColors.Base01).
 		Width(m.maxWidth)
 }
 
