@@ -91,7 +91,7 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*Output,
 
 	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputWorkingDirectory)
+		workingDirectory = "."
 	}
 
 	if workingDirectory == "." {
