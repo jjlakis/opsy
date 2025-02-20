@@ -74,7 +74,7 @@
           "description": "Temperature to use for the Anthropic API",
           "minimum": 0,
           "maximum": 1,
-          "default": 0.9
+          "default": 0.5
         },
         "max_tokens": {
           "type": "integer",
