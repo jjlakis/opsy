@@ -8,15 +8,13 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/datolabs-io/sredo/assets"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/datolabs-io/sredo/internal/tool"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
 )
-
-//go:embed prompt.mdx
-var agentPrompt string
 
 const (
 	// ErrNoRunOptions is the error returned when no run options are provided.
@@ -147,7 +145,7 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 		ctx = a.ctx
 	}
 
-	prompt := agentPrompt
+	prompt := assets.AgentPrompt
 	if opts.Prompt != "" {
 		prompt = opts.Prompt
 	}

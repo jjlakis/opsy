@@ -9,8 +9,12 @@ var (
 	Themes embed.FS
 	//go:embed tools
 	Tools embed.FS
+
 	// ToolsDir is the directory containing the tools.
 	ToolsDir = "tools"
 	// ThemeDir is the directory containing the themes.
 	ThemeDir = "themes"
+
+	//go:embed prompt.mdx
+	AgentPrompt string
 )
