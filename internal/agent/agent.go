@@ -179,8 +179,9 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 		message, err := a.client.Messages.New(ctx, msg)
 
 		if err != nil {
+			// TODO(t-dabasinskas): Implement retry logic
 			logger.With("error", err).Error("Failed to send message to Anthropic API.")
-			continue
+			return nil, err
 		}
 
 		toolResults := []anthropic.ContentBlockParamUnion{}
