@@ -8,10 +8,21 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
+	"github.com/datolabs-io/sredo/internal/tool"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// newTestAgent creates a new agent for testing
+func newTestAgent() *agent.Agent {
+	return agent.New(
+		agent.WithConfig(config.New().GetConfig()),
+		agent.WithLogger(slog.New(slog.DiscardHandler)),
+	)
+}
 
 // TestNew tests the creation of a new tool manager with various options.
 func TestNew(t *testing.T) {
@@ -20,41 +31,48 @@ func TestNew(t *testing.T) {
 		assert.NotNil(t, tm)
 		assert.Equal(t, "tools", tm.dir)
 		assert.NotNil(t, tm.tools)
+		assert.Nil(t, tm.agent)
 	})
 
 	t.Run("creates tool manager with options", func(t *testing.T) {
 		logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 		cfg := config.New().GetConfig()
 		ctx := context.Background()
+		agent := newTestAgent()
 
 		tm := New(
 			WithLogger(logger),
 			WithConfig(cfg),
 			WithContext(ctx),
 			WithDirectory("testdata"),
+			WithAgent(agent),
 		)
 
 		assert.NotNil(t, tm)
 		assert.Equal(t, ".", tm.dir)
 		assert.Equal(t, cfg, tm.cfg)
 		assert.Equal(t, ctx, tm.ctx)
+		assert.Equal(t, agent, tm.agent)
 	})
 }
 
 // TestLoadTools tests loading tools from the filesystem.
 func TestLoadTools(t *testing.T) {
 	t.Run("loads valid tools", func(t *testing.T) {
-		tm := New(WithDirectory("testdata"))
+		tm := New(
+			WithDirectory("testdata"),
+			WithAgent(newTestAgent()),
+		)
 		err := tm.LoadTools()
 		require.NoError(t, err)
 
 		tools := tm.GetTools()
 		assert.Len(t, tools, 3) // Should load test_tool.yaml, executable_tool.yaml and exec tool
 
-		tool, ok := tools["test_tool"]
+		tl, ok := tools["test_tool"]
 		require.True(t, ok)
-		assert.Equal(t, "Test Tool", tool.GetDisplayName())
-		assert.Equal(t, "A tool for testing purposes", tool.GetDescription())
+		assert.Equal(t, "Test Tool", tl.GetDisplayName())
+		assert.Equal(t, "A tool for testing purposes", tl.GetDescription())
 
 		// Verify executable tool is loaded
 		executableTool, ok := tools["executable_tool"]
@@ -63,14 +81,17 @@ func TestLoadTools(t *testing.T) {
 		assert.Equal(t, "A test tool with executable", executableTool.GetDescription())
 
 		// Verify exec tool is loaded
-		execTool, ok := tools[ExecToolName]
+		execTool, ok := tools[tool.ExecToolName]
 		require.True(t, ok)
 		assert.Equal(t, "Exec", execTool.GetDisplayName())
 	})
 
 	t.Run("handles invalid tool definitions", func(t *testing.T) {
 		// The invalid tool should be skipped during loading
-		tm := New(WithDirectory("testdata"))
+		tm := New(
+			WithDirectory("testdata"),
+			WithAgent(newTestAgent()),
+		)
 		err := tm.LoadTools()
 		require.NoError(t, err)
 
@@ -79,32 +100,32 @@ func TestLoadTools(t *testing.T) {
 	})
 
 	t.Run("validates required fields", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &tool.Definition{
 			DisplayName: "Test Tool",
 			Description: "Test Description",
-			Inputs: map[string]toolInput{
+			Inputs: map[string]tool.Input{
 				"test_input": {
 					Description: "Test Input", // Missing type
 				},
 			},
 		}
-		err := validateToolDefinition(def)
-		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingType, "test_input"))
+		err := tool.ValidateDefinition(def)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", tool.ErrToolInputMissingType, "test_input"))
 
-		def.Inputs["test_input"] = toolInput{
+		def.Inputs["test_input"] = tool.Input{
 			Type: "string", // Missing description
 		}
-		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingDescription, "test_input"))
+		err = tool.ValidateDefinition(def)
+		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", tool.ErrToolInputMissingDescription, "test_input"))
 
 		def.DisplayName = ""
-		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, ErrToolMissingDisplayName)
+		err = tool.ValidateDefinition(def)
+		assert.ErrorContains(t, err, tool.ErrToolMissingDisplayName)
 
 		def.DisplayName = "Test Tool"
 		def.Description = ""
-		err = validateToolDefinition(def)
-		assert.ErrorContains(t, err, ErrToolMissingDescription)
+		err = tool.ValidateDefinition(def)
+		assert.ErrorContains(t, err, tool.ErrToolMissingDescription)
 	})
 
 	t.Run("handles non-existent directory", func(t *testing.T) {
@@ -142,7 +163,10 @@ inputs:
 
 	t.Run("handles empty directory", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		tm := New(WithDirectory(tmpDir))
+		tm := New(
+			WithDirectory(tmpDir),
+			WithAgent(newTestAgent()),
+		)
 		err := tm.LoadTools()
 		require.NoError(t, err)
 		assert.Len(t, tm.GetTools(), 1) // Should only have exec tool
@@ -155,7 +179,10 @@ inputs:
 		err := os.WriteFile(filepath.Join(tmpDir, "invalid.yaml"), []byte("invalid: yaml: content"), 0644)
 		require.NoError(t, err)
 
-		tm := New(WithDirectory(tmpDir))
+		tm := New(
+			WithDirectory(tmpDir),
+			WithAgent(newTestAgent()),
+		)
 		err = tm.LoadTools()
 		require.NoError(t, err)
 		assert.Len(t, tm.GetTools(), 1) // Should only have exec tool
@@ -164,7 +191,10 @@ inputs:
 
 // TestGetTool tests retrieving specific tools.
 func TestGetTool(t *testing.T) {
-	tm := New(WithDirectory("testdata"))
+	tm := New(
+		WithDirectory("testdata"),
+		WithAgent(newTestAgent()),
+	)
 	require.NoError(t, tm.LoadTools())
 
 	t.Run("gets existing tool", func(t *testing.T) {
@@ -174,7 +204,7 @@ func TestGetTool(t *testing.T) {
 	})
 
 	t.Run("gets exec tool", func(t *testing.T) {
-		tool, err := tm.GetTool(ExecToolName)
+		tool, err := tm.GetTool(tool.ExecToolName)
 		require.NoError(t, err)
 		assert.Equal(t, "Exec", tool.GetDisplayName())
 	})
@@ -187,7 +217,10 @@ func TestGetTool(t *testing.T) {
 
 // TestGetTools tests retrieving all tools.
 func TestGetTools(t *testing.T) {
-	tm := New(WithDirectory("testdata"))
+	tm := New(
+		WithDirectory("testdata"),
+		WithAgent(newTestAgent()),
+	)
 	require.NoError(t, tm.LoadTools())
 
 	tools := tm.GetTools()
@@ -204,7 +237,7 @@ func TestGetTools(t *testing.T) {
 	assert.Equal(t, "Executable Tool", executableTool.GetDisplayName())
 
 	// Verify exec tool
-	execTool, ok := tools[ExecToolName]
+	execTool, ok := tools[tool.ExecToolName]
 	require.True(t, ok, "exec tool should be present")
 	assert.Equal(t, "Exec", execTool.GetDisplayName())
 }

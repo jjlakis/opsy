@@ -1,4 +1,4 @@
-package toolmanager
+package tool
 
 import (
 	"context"
@@ -35,13 +35,18 @@ type Command struct {
 	CompletedAt time.Time
 }
 
-// newExecTool creates a new exec tool.
-func newExecTool(logger *slog.Logger, cfg *config.ToolsConfiguration) *execTool {
-	definition := toolDefinition{
+const (
+	// inputCommand is the input parameter for the command to execute.
+	inputCommand = "command"
+)
+
+// NewExecTool creates a new exec tool.
+func NewExecTool(logger *slog.Logger, cfg *config.ToolsConfiguration) *execTool {
+	definition := Definition{
 		DisplayName: "Exec",
 		Description: "Executes the provided shell command.",
-		Inputs: map[string]toolInput{
-			InputCommand: {
+		Inputs: map[string]Input{
+			inputCommand: {
 				Description: "The shell command, including all the arguments, to execute",
 				Type:        "string",
 				Examples: []any{
@@ -53,12 +58,12 @@ func newExecTool(logger *slog.Logger, cfg *config.ToolsConfiguration) *execTool 
 		},
 	}
 
-	return (*execTool)(newTool(ExecToolName, definition, commonToolSystemPrompt, logger, cfg))
+	return (*execTool)(New(ExecToolName, definition, logger, cfg, nil))
 }
 
 // GetName returns the name of the tool.
 func (t *execTool) GetName() string {
-	return (*tool)(t).name
+	return (*tool)(t).GetName()
 }
 
 // GetDisplayName returns the display name of the tool.
@@ -77,15 +82,15 @@ func (t *execTool) GetInputSchema() *jsonschema.Schema {
 }
 
 // Execute executes the tool.
-func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
-	command, ok := inputs[InputCommand].(string)
+func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*Output, error) {
+	command, ok := inputs[inputCommand].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, InputCommand)
+		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputCommand)
 	}
 
-	workingDirectory, ok := inputs[InputWorkingDirectory].(string)
+	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, InputWorkingDirectory)
+		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputWorkingDirectory)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())
@@ -101,7 +106,7 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*ToolOut
 	logger.Debug("Executing command.")
 
 	toolOutput, err := cmd.CombinedOutput()
-	output := &ToolOutput{
+	output := &Output{
 		Tool:    t.GetName(),
 		Result:  strings.TrimSpace(string(toolOutput)),
 		IsError: false,

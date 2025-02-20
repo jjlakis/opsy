@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/datolabs-io/sredo/internal/config"
-	"github.com/datolabs-io/sredo/internal/toolmanager"
+	"github.com/datolabs-io/sredo/internal/tool"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -37,11 +37,6 @@ const (
 // Status is the status of the agent.
 type Status string
 
-// AgentRunner is an interface that defines the methods for an agent.
-type AgentRunner interface {
-	Run(task string, prompt string, tools []toolmanager.Tool, ctx context.Context) (string, error)
-}
-
 // Agent is a struct that contains the state of the agent.
 type Agent struct {
 	client        *anthropic.Client
@@ -63,21 +58,9 @@ type Message struct {
 
 // Communication is a struct that contains the communication channels for the agent.
 type Communication struct {
-	Commands chan toolmanager.Command
+	Commands chan tool.Command
 	Messages chan Message
 	Status   chan Status
-}
-
-// RunOptions is a struct that contains the options for the Run method.
-type RunOptions struct {
-	// Task is the task to be executed.
-	Task string
-	// Prompt is an optional prompt to be used for the agent instead of the default one.
-	Prompt string
-	// Caller is an optional tool that is calling the agent.
-	Caller string
-	// Tools is an optional list of tools to be used by the agent.
-	Tools map[string]toolmanager.Tool
 }
 
 // Option is a function that configures the Agent.
@@ -95,7 +78,7 @@ func New(opts ...Option) *Agent {
 		cfg:    config.New().GetConfig(),
 		logger: slog.New(slog.DiscardHandler),
 		communication: &Communication{
-			Commands: make(chan toolmanager.Command),
+			Commands: make(chan tool.Command),
 			Messages: make(chan Message),
 			Status:   make(chan Status),
 		},
@@ -151,7 +134,7 @@ func WithCommunication(communication *Communication) Option {
 }
 
 // Run runs the agent with the given task and tools.
-func (a *Agent) Run(opts *RunOptions, ctx context.Context) ([]toolmanager.ToolOutput, error) {
+func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, error) {
 	if opts == nil {
 		return nil, fmt.Errorf(ErrNoRunOptions)
 	}
@@ -173,7 +156,7 @@ func (a *Agent) Run(opts *RunOptions, ctx context.Context) ([]toolmanager.ToolOu
 	logger.Debug("Agent running.")
 	a.communication.Status <- StatusRunning
 
-	output := []toolmanager.ToolOutput{}
+	output := []tool.Output{}
 	messages := []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(opts.Task))}
 
 	for {
@@ -224,7 +207,7 @@ func (a *Agent) Run(opts *RunOptions, ctx context.Context) ([]toolmanager.ToolOu
 					continue
 				}
 
-				var toolOutput *toolmanager.ToolOutput
+				var toolOutput *tool.Output
 				tool, ok := opts.Tools[block.Name]
 				if !ok {
 					logger.With("tool_name", block.Name).Warn("Tool not found, skipping.")
@@ -283,7 +266,7 @@ func (a *Agent) Run(opts *RunOptions, ctx context.Context) ([]toolmanager.ToolOu
 }
 
 // convertTools converts the tools to the format required by the Anthropic SDK.
-func convertTools(tools map[string]toolmanager.Tool) (anthropicTools []anthropic.ToolParam) {
+func convertTools(tools map[string]tool.Tool) (anthropicTools []anthropic.ToolParam) {
 	for _, t := range tools {
 		anthropicTools = append(anthropicTools, anthropic.ToolParam{
 			Name:        anthropic.F(t.GetName()),

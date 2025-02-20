@@ -11,6 +11,7 @@ import (
 	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/datolabs-io/sredo/internal/tool"
 	"github.com/datolabs-io/sredo/internal/toolmanager"
 	"github.com/datolabs-io/sredo/internal/tui"
 )
@@ -46,19 +47,27 @@ func main() {
 		log.Fatal(err)
 	}
 
+	communication := &agent.Communication{
+		Commands: make(chan tool.Command),
+		Messages: make(chan agent.Message),
+		Status:   make(chan agent.Status),
+	}
+
+	agnt := agent.New(
+		agent.WithConfig(cfg.GetConfig()),
+		agent.WithLogger(logger),
+		agent.WithContext(ctx),
+		agent.WithCommunication(communication),
+	)
+
 	toolManager := toolmanager.New(
 		toolmanager.WithConfig(cfg.GetConfig()),
 		toolmanager.WithLogger(logger),
 		toolmanager.WithContext(ctx),
+		toolmanager.WithAgent(agnt),
 	)
 	if err := toolManager.LoadTools(); err != nil {
 		log.Fatal(err)
-	}
-
-	communication := &agent.Communication{
-		Commands: make(chan toolmanager.Command),
-		Messages: make(chan agent.Message),
-		Status:   make(chan agent.Status),
 	}
 
 	tui := tui.New(
@@ -69,14 +78,8 @@ func main() {
 	)
 	p := tea.NewProgram(tui, tea.WithAltScreen(), tea.WithMouseCellMotion(), tea.WithContext(ctx))
 
-	agnt := agent.New(
-		agent.WithConfig(cfg.GetConfig()),
-		agent.WithLogger(logger),
-		agent.WithContext(ctx),
-		agent.WithCommunication(communication),
-	)
 	go func() {
-		agnt.Run(&agent.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
+		agnt.Run(&tool.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
 		communication.Status <- agent.StatusFinished
 		logger.With("task", task).Info("Sredo finished")
 	}()

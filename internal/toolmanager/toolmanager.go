@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"github.com/datolabs-io/sredo/assets"
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
+	"github.com/datolabs-io/sredo/internal/tool"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,12 +27,6 @@ const (
 	ErrToolNotFound = "tool not found"
 	// ErrInvalidToolDefinition is the error message for an invalid tool definition.
 	ErrInvalidToolDefinition = "invalid tool definition"
-
-	// toolsDir is the directory containing the tools.
-	toolsDir = "tools"
-
-	// commonToolSystemPrompt is the default system prompt added for all tools.
-	commonToolSystemPrompt = ``
 )
 
 // Manager is the interface for the tool manager.
@@ -38,9 +34,9 @@ type Manager interface {
 	// LoadTools loads the tools from the tool manager.
 	LoadTools() error
 	// GetTools returns all tools.
-	GetTools() map[string]Tool
+	GetTools() map[string]tool.Tool
 	// GetTool returns a tool by name.
-	GetTool(name string) (Tool, error)
+	GetTool(name string) (tool.Tool, error)
 }
 
 // ToolManager is the tool manager.
@@ -50,7 +46,8 @@ type ToolManager struct {
 	ctx    context.Context
 	fs     fs.FS
 	dir    string
-	tools  map[string]Tool
+	tools  map[string]tool.Tool
+	agent  *agent.Agent
 }
 
 // Option is a function that modifies the tool manager.
@@ -63,8 +60,9 @@ func New(opts ...Option) *ToolManager {
 		logger: slog.New(slog.DiscardHandler),
 		ctx:    context.Background(),
 		fs:     assets.Tools,
-		dir:    toolsDir,
-		tools:  make(map[string]Tool),
+		dir:    assets.ToolsDir,
+		tools:  make(map[string]tool.Tool),
+		agent:  nil,
 	}
 
 	for _, opt := range opts {
@@ -80,6 +78,13 @@ func New(opts ...Option) *ToolManager {
 func WithConfig(cfg config.Configuration) Option {
 	return func(tm *ToolManager) {
 		tm.cfg = cfg
+	}
+}
+
+// WithAgent sets the agent for the tool manager.
+func WithAgent(agent *agent.Agent) Option {
+	return func(tm *ToolManager) {
+		tm.agent = agent
 	}
 }
 
@@ -113,7 +118,7 @@ func (tm *ToolManager) LoadTools() error {
 	}
 
 	// Exec tool is a special tool which we always statically load.
-	tm.tools[ExecToolName] = newExecTool(tm.logger, &tm.cfg.Tools)
+	tm.tools[tool.ExecToolName] = tool.NewExecTool(tm.logger, &tm.cfg.Tools)
 
 	for _, toolFile := range toolFiles {
 		if toolFile.IsDir() {
@@ -137,31 +142,31 @@ func (tm *ToolManager) LoadTools() error {
 }
 
 // loadTool loads a tool from a file.
-func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (*tool, error) {
+func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (tool.Tool, error) {
 	contents, err := fs.ReadFile(tm.fs, filepath.Join(tm.dir, toolFile.Name()))
 	if err != nil {
 		return nil, fmt.Errorf("%s: %v", ErrLoadingTool, err)
 	}
 
-	var definition toolDefinition
+	var definition tool.Definition
 	if err := yaml.Unmarshal(contents, &definition); err != nil {
 		return nil, fmt.Errorf("%s: %v", ErrParsingTool, err)
 	}
 
-	if err := validateToolDefinition(&definition); err != nil {
+	if err := tool.ValidateDefinition(&definition); err != nil {
 		return nil, fmt.Errorf("%s: %s: %v", ErrInvalidToolDefinition, name, err)
 	}
 
-	return newTool(name, definition, commonToolSystemPrompt, tm.logger, &tm.cfg.Tools), nil
+	return tool.New(name, definition, tm.logger, &tm.cfg.Tools, tm.agent), nil
 }
 
 // GetTools returns all tools.
-func (tm *ToolManager) GetTools() map[string]Tool {
+func (tm *ToolManager) GetTools() map[string]tool.Tool {
 	return tm.tools
 }
 
 // GetTool returns a tool by name.
-func (tm *ToolManager) GetTool(name string) (Tool, error) {
+func (tm *ToolManager) GetTool(name string) (tool.Tool, error) {
 	tool, ok := tm.tools[name]
 	if !ok {
 		return nil, fmt.Errorf("%s: %v", ErrToolNotFound, name)

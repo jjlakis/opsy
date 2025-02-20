@@ -1,4 +1,4 @@
-package toolmanager
+package tool
 
 import (
 	"context"
@@ -12,6 +12,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockRunner is a mock implementation of the Runner interface for testing.
+type mockRunner struct {
+	outputs []Output
+	err     error
+}
+
+func (r *mockRunner) Run(opts *RunOptions, ctx context.Context) ([]Output, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.outputs, nil
+}
+
+// newMockRunner creates a new mock runner with the given outputs and error.
+func newMockRunner(outputs []Output, err error) *mockRunner {
+	return &mockRunner{
+		outputs: outputs,
+		err:     err,
+	}
+}
+
 // TestNewTool tests the creation of a new tool.
 func TestNewTool(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(nil, nil))
@@ -22,22 +43,24 @@ func TestNewTool(t *testing.T) {
 			Shell:   "/bin/bash",
 		},
 	}
-	definition := toolDefinition{
+	definition := Definition{
 		DisplayName:  "Test Tool",
 		Description:  "Test Description",
 		SystemPrompt: "Test Prompt",
-		Inputs:       make(map[string]toolInput),
+		Inputs:       make(map[string]Input),
 	}
 
-	tool := newTool("test", definition, "Default Prompt", logger, cfg)
+	runner := newMockRunner(nil, nil)
+	tool := New("test", definition, logger, cfg, runner)
 
 	t.Run("initializes with correct values", func(t *testing.T) {
 		assert.Equal(t, "test", tool.name)
 		assert.Equal(t, "Test Tool", tool.GetDisplayName())
 		assert.Equal(t, "Test Description", tool.GetDescription())
-		assert.Equal(t, "Test Prompt\n\nDefault Prompt", tool.definition.SystemPrompt)
+		assert.Equal(t, fmt.Sprintf("Test Prompt\n\n%s", commonSystemPrompt), tool.definition.SystemPrompt)
 		assert.NotNil(t, tool.GetInputSchema())
 		assert.Equal(t, cfg, tool.config)
+		assert.Equal(t, runner, tool.agent)
 	})
 }
 
@@ -51,7 +74,7 @@ func TestToolGetters(t *testing.T) {
 			Shell:   "/bin/bash",
 		},
 	}
-	inputs := map[string]toolInput{
+	inputs := map[string]Input{
 		"test_input": {
 			Type:        "string",
 			Description: "Test Input",
@@ -61,14 +84,15 @@ func TestToolGetters(t *testing.T) {
 		},
 	}
 
-	definition := toolDefinition{
+	definition := Definition{
 		DisplayName:  "Display Name",
 		Description:  "Description",
 		SystemPrompt: "System Prompt",
 		Inputs:       inputs,
 	}
 
-	tool := newTool("test", definition, "", logger, cfg)
+	runner := newMockRunner(nil, nil)
+	tool := New("test", definition, logger, cfg, runner)
 
 	t.Run("GetDisplayName returns correct value", func(t *testing.T) {
 		assert.Equal(t, "Display Name", tool.GetDisplayName())
@@ -94,7 +118,7 @@ func TestToolGetters(t *testing.T) {
 
 // TestGenerateInputSchema tests the schema generation for tool inputs.
 func TestGenerateInputSchema(t *testing.T) {
-	inputs := map[string]toolInput{
+	inputs := map[string]Input{
 		"required_input": {
 			Type:        "string",
 			Description: "Required Input",
@@ -144,13 +168,15 @@ func TestToolExecute(t *testing.T) {
 			Shell:   "/bin/bash",
 		},
 	}
-	tool := newTool("test", toolDefinition{
-		DisplayName: "Test Tool",
-		Description: "Test Description",
-		Inputs:      map[string]toolInput{}, // Initialize with empty inputs
-	}, "", logger, cfg)
 
 	t.Run("returns nil result", func(t *testing.T) {
+		runner := newMockRunner(nil, nil)
+		tool := New("test", Definition{
+			DisplayName: "Test Tool",
+			Description: "Test Description",
+			Inputs:      map[string]Input{}, // Initialize with empty inputs
+		}, logger, cfg, runner)
+
 		input := map[string]any{"test": "value"}
 		output, err := tool.Execute(input, context.Background())
 		require.NoError(t, err)
@@ -160,7 +186,7 @@ func TestToolExecute(t *testing.T) {
 
 // TestAppendCommonInputs tests the appendCommonInputs function.
 func TestAppendCommonInputs(t *testing.T) {
-	customInputs := map[string]toolInput{
+	customInputs := map[string]Input{
 		"custom_input": {
 			Type:        "string",
 			Description: "Custom input",
@@ -174,14 +200,14 @@ func TestAppendCommonInputs(t *testing.T) {
 
 	t.Run("includes common inputs", func(t *testing.T) {
 		// Check task input
-		taskInput, ok := allInputs[InputTask]
+		taskInput, ok := allInputs[inputTask]
 		require.True(t, ok, "task input should be present")
 		assert.Equal(t, "string", taskInput.Type)
 		assert.Equal(t, "Task (without parameters) the user wants to complete with the tool.", taskInput.Description)
 		assert.False(t, taskInput.Optional)
 
 		// Check working directory input
-		wdInput, ok := allInputs[InputWorkingDirectory]
+		wdInput, ok := allInputs[inputWorkingDirectory]
 		require.True(t, ok, "working directory input should be present")
 		assert.Equal(t, "string", wdInput.Type)
 		assert.Equal(t, "Working directory to use for the tool.", wdInput.Description)
@@ -203,11 +229,11 @@ func TestAppendCommonInputs(t *testing.T) {
 // TestValidateToolDefinition tests the validateToolDefinition function.
 func TestValidateToolDefinition(t *testing.T) {
 	t.Run("validates valid tool definition", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &Definition{
 			DisplayName:  "Valid Tool",
 			Description:  "Valid Description",
 			SystemPrompt: "Valid Prompt",
-			Inputs: map[string]toolInput{
+			Inputs: map[string]Input{
 				"input1": {
 					Type:        "string",
 					Description: "Valid Input",
@@ -217,75 +243,75 @@ func TestValidateToolDefinition(t *testing.T) {
 				},
 			},
 		}
-		err := validateToolDefinition(def)
+		err := ValidateDefinition(def)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validates tool definition with executable", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &Definition{
 			DisplayName:  "Valid Tool",
 			Description:  "Valid Description",
 			SystemPrompt: "Valid Prompt",
 			Executable:   "ls", // Common executable that should exist
-			Inputs:       map[string]toolInput{},
+			Inputs:       map[string]Input{},
 		}
-		err := validateToolDefinition(def)
+		err := ValidateDefinition(def)
 		assert.NoError(t, err)
 	})
 
 	t.Run("validates tool definition with non-existent executable", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &Definition{
 			DisplayName:  "Invalid Tool",
 			Description:  "Invalid Description",
 			SystemPrompt: "Invalid Prompt",
 			Executable:   "non-existent-executable",
-			Inputs:       map[string]toolInput{},
+			Inputs:       map[string]Input{},
 		}
-		err := validateToolDefinition(def)
+		err := ValidateDefinition(def)
 		assert.ErrorContains(t, err, ErrToolExecutableNotFound)
 	})
 
 	t.Run("validates empty tool definition", func(t *testing.T) {
-		def := &toolDefinition{}
-		err := validateToolDefinition(def)
+		def := &Definition{}
+		err := ValidateDefinition(def)
 		assert.ErrorContains(t, err, ErrToolMissingDisplayName)
 
 		def.DisplayName = "Tool"
-		err = validateToolDefinition(def)
+		err = ValidateDefinition(def)
 		assert.ErrorContains(t, err, ErrToolMissingDescription)
 	})
 
 	t.Run("validates input fields", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &Definition{
 			DisplayName:  "Tool",
 			Description:  "Description",
 			SystemPrompt: "Prompt",
-			Inputs: map[string]toolInput{
+			Inputs: map[string]Input{
 				"input1": {},
 			},
 		}
-		err := validateToolDefinition(def)
+		err := ValidateDefinition(def)
 		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingType, "input1"))
 
-		def.Inputs["input1"] = toolInput{Type: "string"}
-		err = validateToolDefinition(def)
+		def.Inputs["input1"] = Input{Type: "string"}
+		err = ValidateDefinition(def)
 		assert.ErrorContains(t, err, fmt.Sprintf("%s: %q", ErrToolInputMissingDescription, "input1"))
 
-		def.Inputs["input1"] = toolInput{
+		def.Inputs["input1"] = Input{
 			Type:        "string",
 			Description: "Description",
 		}
-		err = validateToolDefinition(def)
+		err = ValidateDefinition(def)
 		assert.NoError(t, err)
 	})
 
 	t.Run("allows empty inputs", func(t *testing.T) {
-		def := &toolDefinition{
+		def := &Definition{
 			DisplayName:  "Tool",
 			Description:  "Description",
 			SystemPrompt: "Prompt",
 		}
-		err := validateToolDefinition(def)
+		err := ValidateDefinition(def)
 		assert.NoError(t, err)
 	})
 }
@@ -307,11 +333,11 @@ func TestToolInterfaceCompliance(t *testing.T) {
 			Shell:   "/bin/bash",
 		},
 	}
-	def := toolDefinition{
+	def := Definition{
 		DisplayName:  "Test Tool",
 		Description:  "Test Description",
 		SystemPrompt: "Test Prompt",
-		Inputs: map[string]toolInput{
+		Inputs: map[string]Input{
 			"test": {
 				Type:        "string",
 				Description: "Test Input",
@@ -319,7 +345,8 @@ func TestToolInterfaceCompliance(t *testing.T) {
 		},
 	}
 
-	tool := newTool("test", def, "", logger, cfg)
+	runner := newMockRunner(nil, nil)
+	tool := New("test", def, logger, cfg, runner)
 
 	t.Run("implements all interface methods", func(t *testing.T) {
 		assert.NotPanics(t, func() {
@@ -332,7 +359,7 @@ func TestToolInterfaceCompliance(t *testing.T) {
 	})
 
 	t.Run("exec tool implements all interface methods", func(t *testing.T) {
-		execTool := newExecTool(logger, cfg)
+		execTool := NewExecTool(logger, cfg)
 		assert.NotPanics(t, func() {
 			_ = execTool.GetName()
 			_ = execTool.GetDisplayName()

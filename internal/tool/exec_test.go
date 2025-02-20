@@ -1,4 +1,4 @@
-package toolmanager
+package tool
 
 import (
 	"context"
@@ -31,7 +31,7 @@ func newTestConfig() *config.ToolsConfiguration {
 func TestNewExecTool(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
-	tool := newExecTool(logger, cfg)
+	tool := NewExecTool(logger, cfg)
 
 	t.Run("initializes with correct values", func(t *testing.T) {
 		assert.Equal(t, ExecToolName, tool.GetName())
@@ -46,7 +46,7 @@ func TestNewExecTool(t *testing.T) {
 		require.NotNil(t, schema)
 
 		// Verify command input
-		commandProp, ok := schema.Properties.Get(InputCommand)
+		commandProp, ok := schema.Properties.Get(inputCommand)
 		require.True(t, ok)
 		assert.Equal(t, "string", commandProp.Type)
 		assert.Equal(t, "The shell command, including all the arguments, to execute", commandProp.Description)
@@ -58,12 +58,12 @@ func TestNewExecTool(t *testing.T) {
 func TestExecTool_Execute(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
-	tool := newExecTool(logger, cfg)
+	tool := NewExecTool(logger, cfg)
 
 	t.Run("executes simple command successfully", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "echo -n 'test'",
-			InputWorkingDirectory: ".",
+			inputCommand:          "echo -n 'test'",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
@@ -82,8 +82,8 @@ func TestExecTool_Execute(t *testing.T) {
 
 	t.Run("handles command error", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "nonexistentcommand",
-			InputWorkingDirectory: ".",
+			inputCommand:          "nonexistentcommand",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
@@ -100,8 +100,8 @@ func TestExecTool_Execute(t *testing.T) {
 
 	t.Run("validates command input type", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          123, // Invalid type
-			InputWorkingDirectory: ".",
+			inputCommand:          123, // Invalid type
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
@@ -111,8 +111,8 @@ func TestExecTool_Execute(t *testing.T) {
 
 	t.Run("validates working directory input type", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "echo 'test'",
-			InputWorkingDirectory: 123, // Invalid type
+			inputCommand:          "echo 'test'",
+			inputWorkingDirectory: 123, // Invalid type
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
@@ -133,7 +133,7 @@ func TestExecTool_Timeout(t *testing.T) {
 				Shell:   "/bin/bash",
 			},
 		}
-		tool := newExecTool(logger, cfg)
+		tool := NewExecTool(logger, cfg)
 		timeout := tool.getTimeout()
 		assert.Equal(t, 2*time.Second, timeout)
 	})
@@ -146,7 +146,7 @@ func TestExecTool_Timeout(t *testing.T) {
 				Shell:   "/bin/bash",
 			},
 		}
-		tool := newExecTool(logger, cfg)
+		tool := NewExecTool(logger, cfg)
 		timeout := tool.getTimeout()
 		assert.Equal(t, 30*time.Second, timeout)
 	})
@@ -159,10 +159,10 @@ func TestExecTool_Timeout(t *testing.T) {
 				Shell:   "/bin/bash",
 			},
 		}
-		tool := newExecTool(logger, cfg)
+		tool := NewExecTool(logger, cfg)
 		inputs := map[string]any{
-			InputCommand:          "sleep 5",
-			InputWorkingDirectory: ".",
+			inputCommand:          "sleep 5",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
@@ -180,12 +180,12 @@ func TestExecTool_Timeout(t *testing.T) {
 func TestExecTool_WorkingDirectory(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
-	tool := newExecTool(logger, cfg)
+	tool := NewExecTool(logger, cfg)
 
 	t.Run("executes in specified working directory", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "pwd",
-			InputWorkingDirectory: "/tmp",
+			inputCommand:          "pwd",
+			inputWorkingDirectory: "/tmp",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
@@ -200,8 +200,8 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 
 	t.Run("handles nonexistent working directory", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "pwd",
-			InputWorkingDirectory: "/nonexistent/directory",
+			inputCommand:          "pwd",
+			inputWorkingDirectory: "/nonexistent/directory",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
@@ -219,12 +219,12 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 func TestExecTool_Timestamps(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
-	tool := newExecTool(logger, cfg)
+	tool := NewExecTool(logger, cfg)
 
 	t.Run("timestamps are set for quick commands", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "echo 'quick'",
-			InputWorkingDirectory: ".",
+			inputCommand:          "echo 'quick'",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
@@ -244,8 +244,8 @@ func TestExecTool_Timestamps(t *testing.T) {
 
 	t.Run("timestamps are set for longer running commands", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "sleep 0.5",
-			InputWorkingDirectory: ".",
+			inputCommand:          "sleep 0.5",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
@@ -265,8 +265,8 @@ func TestExecTool_Timestamps(t *testing.T) {
 
 	t.Run("timestamps are set even when command fails", func(t *testing.T) {
 		inputs := map[string]any{
-			InputCommand:          "nonexistentcommand",
-			InputWorkingDirectory: ".",
+			inputCommand:          "nonexistentcommand",
+			inputWorkingDirectory: ".",
 		}
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)

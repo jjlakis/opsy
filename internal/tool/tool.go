@@ -1,4 +1,4 @@
-package toolmanager
+package tool
 
 import (
 	"context"
@@ -25,7 +25,7 @@ type Tool interface {
 	// GetInputSchema returns the input schema of the tool.
 	GetInputSchema() *jsonschema.Schema
 	// Execute executes the tool.
-	Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error)
+	Execute(inputs map[string]any, ctx context.Context) (*Output, error)
 }
 
 // Tool is a tool that can be used by the agent.
@@ -35,15 +35,17 @@ type tool struct {
 	// config is the config for the tool.
 	config *config.ToolsConfiguration
 	// definition is the definition of the tool.
-	definition toolDefinition
+	definition Definition
 	// logger is the logger for the tool.
 	logger *slog.Logger
 	// inputSchema is the input schema of the tool.
 	inputSchema *jsonschema.Schema
+	// agent is the agent that is using the tool.
+	agent Runner
 }
 
-// toolDefinition is the definition of a tool.
-type toolDefinition struct {
+// Definition is the definition of a tool.
+type Definition struct {
 	// DisplayName is the name of the tool as it will be displayed in the UI.
 	DisplayName string `yaml:"display_name"`
 	// Description is the description of the tool as it will be displayed in the UI.
@@ -51,13 +53,13 @@ type toolDefinition struct {
 	// SystemPrompt is the system prompt to use when the tool is selected.
 	SystemPrompt string `yaml:"system_prompt"`
 	// Inputs is the inputs for the tool.
-	Inputs map[string]toolInput `yaml:"inputs"`
+	Inputs map[string]Input `yaml:"inputs"`
 	// Executable is the executable to use to execute the tool.
 	Executable string `yaml:"executable,omitempty"`
 }
 
-// toolInput is the definition of an input for a tool.
-type toolInput struct {
+// Input is the definition of an input for a tool.
+type Input struct {
 	// Type is the type of the input.
 	Type string `yaml:"type"`
 	// Description is the description of the input.
@@ -70,8 +72,8 @@ type toolInput struct {
 	Optional bool `yaml:"optional"`
 }
 
-// ToolOutput is the output of a tool.
-type ToolOutput struct {
+// Output is the output of a tool.
+type Output struct {
 	// Tool is the name of the tool that executed the task.
 	Tool string `json:"tool"`
 	// Result is the result from the tool execution.
@@ -96,16 +98,21 @@ const (
 	// ErrToolExecutableNotFound is the error returned when a tool executable is not found.
 	ErrToolExecutableNotFound = "tool executable not found"
 
-	// InputTask is the input parameter for the task to complete.
-	InputTask = "task"
-	// InputWorkingDirectory is the input parameter for the working directory to use for the tool.
-	InputWorkingDirectory = "working_directory"
-	// InputCommand is the input parameter for the command to execute.
-	InputCommand = "command"
+	// inputTask is the input parameter for the task to complete.
+	inputTask = "task"
+	// inputWorkingDirectory is the input parameter for the working directory to use for the tool.
+	inputWorkingDirectory = "working_directory"
+
+	// TODO(t-dabasinskas): Update the tool system prompt
+	// commonSystemPrompt is the default system prompt added for all tools.
+	commonSystemPrompt = `
+	You are a helpful assistant that can execute tasks using tools.
+	You can execute a tool by providing the tool name and the tool's inputs.
+	`
 )
 
-// newTool creates a new tool.
-func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, cfg *config.ToolsConfiguration) *tool {
+// New creates a new tool.
+func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfiguration, agent Runner) *tool {
 	logger = logger.WithGroup("tool").With("name", n).With("display_name", def.DisplayName).
 		With("description", def.Description).With("executable", def.Executable)
 
@@ -115,9 +122,10 @@ func newTool(n string, def toolDefinition, prompt string, logger *slog.Logger, c
 		config:      cfg,
 		logger:      logger,
 		name:        n,
+		agent:       agent,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, prompt)
+	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, commonSystemPrompt)
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
@@ -144,7 +152,7 @@ func (t *tool) GetInputSchema() *jsonschema.Schema {
 }
 
 // Execute executes the tool.
-func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput, error) {
+func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, error) {
 	t.logger.With("inputs", inputs).Info("Executing tool.")
 
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.Timeout))
@@ -155,9 +163,9 @@ func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*ToolOutput,
 }
 
 // appendCommonInputs appends the common tool inputs to the tool's inputs.
-func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
-	allInputs := map[string]toolInput{
-		InputTask: {
+func appendCommonInputs(inputs map[string]Input) map[string]Input {
+	allInputs := map[string]Input{
+		inputTask: {
 			Type:        "string",
 			Description: "Task (without parameters) the user wants to complete with the tool.",
 			Examples: []any{
@@ -167,7 +175,7 @@ func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
 			Default:  "",
 			Optional: false,
 		},
-		InputWorkingDirectory: {
+		inputWorkingDirectory: {
 			Type:        "string",
 			Description: "Working directory to use for the tool.",
 			Examples: []any{
@@ -184,7 +192,7 @@ func appendCommonInputs(inputs map[string]toolInput) map[string]toolInput {
 }
 
 // GenerateInputSchema generates a JSON schema for the tool's inputs.
-func generateInputSchema(inputs map[string]toolInput) *jsonschema.Schema {
+func generateInputSchema(inputs map[string]Input) *jsonschema.Schema {
 	required := make([]string, 0)
 	properties := orderedmap.New[string, *jsonschema.Schema]()
 
@@ -210,8 +218,8 @@ func generateInputSchema(inputs map[string]toolInput) *jsonschema.Schema {
 	return schema
 }
 
-// validateToolDefinition validates a tool definition.
-func validateToolDefinition(def *toolDefinition) error {
+// ValidateDefinition validates a tool definition.
+func ValidateDefinition(def *Definition) error {
 	if def.DisplayName == "" {
 		return errors.New(ErrToolMissingDisplayName)
 	}
