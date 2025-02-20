@@ -122,7 +122,8 @@ func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfigu
 		agent:       agent,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, assets.ToolSystemPrompt)
+	tool.definition.SystemPrompt = fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
+	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, tool.definition.SystemPrompt)
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
