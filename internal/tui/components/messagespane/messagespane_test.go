@@ -1,12 +1,20 @@
 package messagespane
 
 import (
+	"regexp"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 	"github.com/stretchr/testify/assert"
 )
+
+// stripANSI removes ANSI color codes from a string.
+func stripANSI(str string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+	return re.ReplaceAllString(str, "")
+}
 
 // TestNew tests the creation of a new messages pane component.
 func TestNew(t *testing.T) {
@@ -89,7 +97,17 @@ func TestView(t *testing.T) {
 	// Set dimensions to test rendering
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 
-	view := m.View()
+	// Add test messages
+	m.Update(agent.Message{
+		Message: "Hello",
+		Tool:    "",
+	})
+	m.Update(agent.Message{
+		Message: "Running git command",
+		Tool:    "Git",
+	})
+
+	view := stripANSI(m.View())
 	assert.NotEmpty(t, view)
 	assert.Contains(t, view, "Messages")
 	assert.Contains(t, view, "Sredo:")
