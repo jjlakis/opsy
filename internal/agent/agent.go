@@ -226,20 +226,17 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 
 				output = append(output, *toolOutput)
 
-				if toolOutput.Result != "" {
+				// Show messages from the tools unless they are executed command results:
+				if toolOutput.Result != "" && toolOutput.ExecutedCommand == nil {
 					a.communication.Messages <- Message{
 						Tool:      opts.Caller,
 						Message:   toolOutput.Result,
 						Timestamp: time.Now(),
 					}
-					// TODO(t-dabasinskas): Remove this once we update UI
-					logger.With("tool_message", toolOutput.Result).Debug("Tool message.")
 				}
 
 				if toolOutput.ExecutedCommand != nil {
 					a.communication.Commands <- *toolOutput.ExecutedCommand
-					// TODO(t-dabasinskas): Remove this once we update UI
-					logger.With("command", toolOutput.ExecutedCommand).Debug("Tool command.")
 				}
 
 				outputJSON, err := json.Marshal(toolOutput)
