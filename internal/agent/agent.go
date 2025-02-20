@@ -145,7 +145,7 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 		ctx = a.ctx
 	}
 
-	prompt := assets.AgentPrompt
+	prompt := assets.AgentSystemPrompt
 	if opts.Prompt != "" {
 		prompt = opts.Prompt
 	}

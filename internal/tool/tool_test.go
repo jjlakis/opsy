@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"testing"
 
+	"github.com/datolabs-io/sredo/assets"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +59,7 @@ func TestNewTool(t *testing.T) {
 		assert.Equal(t, "test", tool.name)
 		assert.Equal(t, "Test Tool", tool.GetDisplayName())
 		assert.Equal(t, "Test Description", tool.GetDescription())
-		assert.Equal(t, fmt.Sprintf("Test Prompt\n\n%s", commonSystemPrompt), tool.definition.SystemPrompt)
+		assert.Equal(t, fmt.Sprintf("Test Prompt\n\n%s", assets.ToolSystemPrompt), tool.definition.SystemPrompt)
 		assert.NotNil(t, tool.GetInputSchema())
 		assert.Equal(t, cfg, tool.config)
 		assert.Equal(t, runner, tool.agent)

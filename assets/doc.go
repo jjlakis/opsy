@@ -17,20 +17,34 @@
 //   - Contains tool-specific configuration files in YAML format
 //   - Includes git.yaml which defines Git-related configurations and commands
 //   - Tools configurations define how sredo interacts with various development tools
+//   - Each tool can define its own system prompt in its configuration
 //
-// Agent Prompt (prompt.mdx):
-//   - Contains the system prompt used by the AI agent
-//   - Written in MDX format for rich text formatting
-//   - Defines the agent's behavior, capabilities, and interaction patterns
-//   - Can be customized per task via RunOptions.Prompt
+// Prompts:
+//
+//   - AgentSystemPrompt (Main system prompt for the AI agent)
+//     Used for task understanding and dispatching
+//     Defines the agent's core behavior and capabilities
+//     Controls how the agent interacts with tools and handles tasks
+//
+//   - ToolSystemPrompt (Common system prompt for all tools)
+//     Appended to each tool's specific system prompt
+//     Defines common behavior and patterns for all tools
+//     Ensures consistent tool execution and output formatting
+//
+//   - ToolUserPrompt (User prompt template for tool execution)
+//     Used to format commands for shell execution
+//     Provides consistent command generation across tools
+//     Includes task description and additional context
 //
 // # Usage
 //
-// The assets are exposed through two embedded filesystems and one string variable:
+// The assets are exposed through two embedded filesystems and three string variables:
 //
-//	var Themes embed.FS    // Access to theme configurations
-//	var Tools embed.FS     // Access to tool configurations
-//	var AgentPrompt string // Access to the agent's system prompt
+//	var Themes embed.FS         // Access to theme configurations
+//	var Tools embed.FS          // Access to tool configurations
+//	var AgentSystemPrompt string // Main system prompt for the AI agent
+//	var ToolSystemPrompt string  // Common system prompt for all tools
+//	var ToolUserPrompt string    // User prompt template for tool execution
 //
 // To access these assets in other parts of the application, import this package
 // and use the appropriate embedded filesystem variable or string. The files can be
@@ -40,5 +54,6 @@
 //
 //	themeData, err := assets.Themes.ReadFile("themes/default.yaml")
 //	toolData, err := assets.Tools.ReadFile("tools/git.yaml")
-//	prompt := assets.AgentPrompt // Direct access to the prompt string
+//	agentPrompt := assets.AgentSystemPrompt
+//	toolPrompt := assets.ToolSystemPrompt
 package assets

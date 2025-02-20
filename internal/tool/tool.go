@@ -2,12 +2,14 @@ package tool
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
 	"time"
 
+	"github.com/datolabs-io/sredo/assets"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/invopop/jsonschema"
 	orderedmap "github.com/wk8/go-ordered-map/v2"
@@ -97,22 +99,13 @@ const (
 	ErrToolInputMissingDescription = "missing tool input description"
 	// ErrToolExecutableNotFound is the error returned when a tool executable is not found.
 	ErrToolExecutableNotFound = "tool executable not found"
+	// ErrToolMarshalingInputs is the error returned when a tool inputs cannot be marshaled.
+	ErrToolMarshalingInputs = "tool inputs cannot be marshaled"
 
 	// inputTask is the input parameter for the task to complete.
 	inputTask = "task"
 	// inputWorkingDirectory is the input parameter for the working directory to use for the tool.
 	inputWorkingDirectory = "working_directory"
-
-	// TODO(t-dabasinskas): Update the tool system prompt
-	// commonSystemPrompt is the default system prompt added for all tools.
-	commonSystemPrompt = `
-	You are a helpful assistant that can execute tasks using tools.
-	You can execute a tool by providing the tool name and the tool's inputs.
-	`
-	userPrompt = `
-	Generate and execute a %s Shell command to complete the following task: %s.
-	Additional task parameters and context are provided in the JSON below:
-	`
 )
 
 // New creates a new tool.
@@ -129,7 +122,7 @@ func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfigu
 		agent:       agent,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, commonSystemPrompt)
+	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, assets.ToolSystemPrompt)
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
@@ -168,9 +161,13 @@ func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, err
 		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputTask)
 	}
 
-	task = fmt.Sprintf("%s\n```json\n%s\n```", fmt.Sprintf(userPrompt, t.definition.Executable, task), inputs)
+	marshaledInputs, err := json.MarshalIndent(inputs, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrToolMarshalingInputs, err)
+	}
+
 	options := &RunOptions{
-		Task:   task,
+		Task:   fmt.Sprintf(assets.ToolUserPrompt, t.definition.Executable, task, marshaledInputs),
 		Prompt: t.definition.SystemPrompt,
 		Caller: t.GetDisplayName(),
 		Tools:  map[string]Tool{ExecToolName: NewExecTool(t.logger, t.config)},

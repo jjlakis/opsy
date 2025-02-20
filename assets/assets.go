@@ -15,6 +15,10 @@ var (
 	// ThemeDir is the directory containing the themes.
 	ThemeDir = "themes"
 
-	//go:embed prompt.mdx
-	AgentPrompt string
+	//go:embed prompts/agent_system.mdx
+	AgentSystemPrompt string
+	//go:embed prompts/tool_system.mdx
+	ToolSystemPrompt string
+	//go:embed prompts/tool_user.mdx
+	ToolUserPrompt string
 )
