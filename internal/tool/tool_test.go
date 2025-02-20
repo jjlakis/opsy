@@ -169,7 +169,7 @@ func TestToolExecute(t *testing.T) {
 		},
 	}
 
-	t.Run("returns nil result", func(t *testing.T) {
+	t.Run("returns empty result", func(t *testing.T) {
 		runner := newMockRunner(nil, nil)
 		tool := New("test", Definition{
 			DisplayName: "Test Tool",
@@ -180,7 +180,11 @@ func TestToolExecute(t *testing.T) {
 		input := map[string]any{"test": "value"}
 		output, err := tool.Execute(input, context.Background())
 		require.NoError(t, err)
-		assert.Nil(t, output)
+		assert.NotNil(t, output)
+		assert.Equal(t, "Test Tool", output.Tool)
+		assert.Empty(t, output.Result)
+		assert.False(t, output.IsError)
+		assert.Nil(t, output.ExecutedCommand)
 	})
 }
 

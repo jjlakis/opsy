@@ -109,6 +109,10 @@ const (
 	You are a helpful assistant that can execute tasks using tools.
 	You can execute a tool by providing the tool name and the tool's inputs.
 	`
+	userPrompt = `
+	Generate and execute a %s Shell command to complete the following task.
+	The task and required parameters are provided in the JSON below:
+	`
 )
 
 // New creates a new tool.
@@ -153,13 +157,41 @@ func (t *tool) GetInputSchema() *jsonschema.Schema {
 
 // Execute executes the tool.
 func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, error) {
-	t.logger.With("inputs", inputs).Info("Executing tool.")
+	logger := t.logger.With("inputs", inputs)
+	logger.Info("Executing tool.")
 
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(t.config.Timeout))
+	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())
 	defer cancel()
 
-	// TODO(t-dabasinskas): Implement the tool's logic here.
-	return nil, nil
+	task := fmt.Sprintf("%s\n```json\n%s\n```", fmt.Sprintf(userPrompt, t.definition.Executable), inputs)
+	options := &RunOptions{
+		Task:   task,
+		Prompt: t.definition.SystemPrompt,
+		Caller: t.GetDisplayName(),
+		Tools:  map[string]Tool{ExecToolName: NewExecTool(t.logger, t.config)},
+	}
+	output := &Output{
+		Tool:            t.GetDisplayName(),
+		IsError:         false,
+		ExecutedCommand: nil,
+	}
+
+	runOutput, err := t.agent.Run(options, ctx)
+	if err != nil {
+		logger.With("error", err).Error("Tool run failed.")
+		output.IsError = true
+	}
+
+	if len(runOutput) > 0 {
+		output.Result = runOutput[len(runOutput)-1].Result
+	}
+
+	return output, err
+}
+
+// getTimeout returns the timeout for the tool.
+func (t *tool) getTimeout() time.Duration {
+	return time.Duration(t.config.Timeout) * time.Second
 }
 
 // appendCommonInputs appends the common tool inputs to the tool's inputs.
