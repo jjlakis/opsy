@@ -24,8 +24,6 @@ const (
 const (
 	// defaultTheme is the default theme name.
 	defaultTheme = "default"
-	// themesDir is the directory containing the themes.
-	themesDir = "themes"
 	// themeExtension is the extension for theme files.
 	themeExtension = "yaml"
 )
@@ -53,7 +51,7 @@ type Option func(*ThemeManager)
 func New(opts ...Option) *ThemeManager {
 	tm := &ThemeManager{
 		fs:     assets.Themes,
-		dir:    themesDir,
+		dir:    assets.ThemeDir,
 		logger: slog.New(slog.DiscardHandler),
 	}
 

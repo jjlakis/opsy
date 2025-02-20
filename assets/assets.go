@@ -4,8 +4,13 @@ import (
 	"embed"
 )
 
-//go:embed themes
-var Themes embed.FS
-
-//go:embed tools
-var Tools embed.FS
+var (
+	//go:embed themes
+	Themes embed.FS
+	//go:embed tools
+	Tools embed.FS
+	// ToolsDir is the directory containing the tools.
+	ToolsDir = "tools"
+	// ThemeDir is the directory containing the themes.
+	ThemeDir = "themes"
+)
