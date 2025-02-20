@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"strings"
 	"syscall"
@@ -91,6 +92,12 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*Output,
 	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
 	if !ok {
 		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputWorkingDirectory)
+	}
+
+	if workingDirectory == "." {
+		if pwd, err := os.Getwd(); err == nil {
+			workingDirectory = pwd
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())

@@ -3,6 +3,7 @@ package tool
 import (
 	"context"
 	"log/slog"
+	"os"
 	"testing"
 	"time"
 
@@ -59,6 +60,8 @@ func TestExecTool_Execute(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
 	tool := NewExecTool(logger, cfg)
+	pwd, err := os.Getwd()
+	require.NoError(t, err)
 
 	t.Run("executes simple command successfully", func(t *testing.T) {
 		inputs := map[string]any{
@@ -73,7 +76,7 @@ func TestExecTool_Execute(t *testing.T) {
 		assert.False(t, output.IsError)
 		assert.NotNil(t, output.ExecutedCommand)
 		assert.Equal(t, "echo -n 'test'", output.ExecutedCommand.Command)
-		assert.Equal(t, ".", output.ExecutedCommand.WorkingDirectory)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 		assert.Equal(t, 0, output.ExecutedCommand.ExitCode)
 		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
 		assert.False(t, output.ExecutedCommand.CompletedAt.IsZero())
@@ -94,7 +97,7 @@ func TestExecTool_Execute(t *testing.T) {
 		assert.True(t, output.IsError)
 		assert.NotNil(t, output.ExecutedCommand)
 		assert.Equal(t, "nonexistentcommand", output.ExecutedCommand.Command)
-		assert.Equal(t, ".", output.ExecutedCommand.WorkingDirectory)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 		assert.Equal(t, 127, output.ExecutedCommand.ExitCode)
 	})
 
@@ -124,6 +127,8 @@ func TestExecTool_Execute(t *testing.T) {
 // TestExecTool_Timeout tests the timeout functionality of the exec tool.
 func TestExecTool_Timeout(t *testing.T) {
 	logger := newTestLogger()
+	pwd, err := os.Getwd()
+	require.NoError(t, err)
 
 	t.Run("uses exec timeout when set", func(t *testing.T) {
 		cfg := &config.ToolsConfiguration{
@@ -172,7 +177,7 @@ func TestExecTool_Timeout(t *testing.T) {
 		assert.Empty(t, output.Result)
 		assert.NotNil(t, output.ExecutedCommand)
 		assert.Equal(t, "sleep 5", output.ExecutedCommand.Command)
-		assert.Equal(t, ".", output.ExecutedCommand.WorkingDirectory)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 	})
 }
 
@@ -213,6 +218,21 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 		assert.Equal(t, "/nonexistent/directory", output.ExecutedCommand.WorkingDirectory)
 		assert.NotEqual(t, 0, output.ExecutedCommand.ExitCode)
 	})
+
+	t.Run("resolves current directory", func(t *testing.T) {
+		pwd, err := os.Getwd()
+		require.NoError(t, err)
+
+		inputs := map[string]any{
+			inputCommand:          "pwd",
+			inputWorkingDirectory: ".",
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
+		assert.Contains(t, output.Result, pwd)
+	})
 }
 
 // TestExecTool_Timestamps tests the timestamp functionality of executed commands.
@@ -220,6 +240,8 @@ func TestExecTool_Timestamps(t *testing.T) {
 	logger := newTestLogger()
 	cfg := newTestConfig()
 	tool := NewExecTool(logger, cfg)
+	pwd, err := os.Getwd()
+	require.NoError(t, err)
 
 	t.Run("timestamps are set for quick commands", func(t *testing.T) {
 		inputs := map[string]any{
@@ -229,6 +251,7 @@ func TestExecTool_Timestamps(t *testing.T) {
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
 		assert.NotNil(t, output.ExecutedCommand)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 
 		// Verify timestamps are set
 		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
@@ -250,6 +273,7 @@ func TestExecTool_Timestamps(t *testing.T) {
 		output, err := tool.Execute(inputs, context.Background())
 		require.NoError(t, err)
 		assert.NotNil(t, output.ExecutedCommand)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 
 		// Verify timestamps are set
 		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
@@ -271,6 +295,7 @@ func TestExecTool_Timestamps(t *testing.T) {
 		output, err := tool.Execute(inputs, context.Background())
 		assert.Error(t, err)
 		assert.NotNil(t, output.ExecutedCommand)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 
 		// Verify timestamps are set even for failed commands
 		assert.False(t, output.ExecutedCommand.StartedAt.IsZero())
