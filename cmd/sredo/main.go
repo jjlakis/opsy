@@ -79,9 +79,13 @@ func main() {
 	p := tea.NewProgram(tui, tea.WithAltScreen(), tea.WithMouseCellMotion(), tea.WithContext(ctx))
 
 	go func() {
-		agnt.Run(&tool.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx)
-		communication.Status <- agent.StatusFinished
-		logger.With("task", task).Info("Sredo finished")
+		if _, err := agnt.Run(&tool.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx); err != nil {
+			communication.Status <- agent.StatusError
+			logger.With("task", task).Error("Sredo finished with error", "error", err)
+		} else {
+			communication.Status <- agent.StatusFinished
+			logger.With("task", task).Info("Sredo finished")
+		}
 	}()
 
 	go func() {

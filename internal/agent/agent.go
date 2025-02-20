@@ -4,7 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"log/slog"
 	"time"
 
@@ -134,11 +134,11 @@ func WithCommunication(communication *Communication) Option {
 // Run runs the agent with the given task and tools.
 func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, error) {
 	if opts == nil {
-		return nil, fmt.Errorf(ErrNoRunOptions)
+		return nil, errors.New(ErrNoRunOptions)
 	}
 
 	if opts.Task == "" {
-		return nil, fmt.Errorf(ErrNoTaskProvided)
+		return nil, errors.New(ErrNoTaskProvided)
 	}
 
 	if ctx == nil {
