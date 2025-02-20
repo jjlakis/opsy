@@ -6,6 +6,7 @@ import (
 	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/datolabs-io/sredo/internal/tool"
 	"github.com/datolabs-io/sredo/internal/tui/components/commandspane"
 	"github.com/datolabs-io/sredo/internal/tui/components/footer"
 	"github.com/datolabs-io/sredo/internal/tui/components/header"
@@ -74,7 +75,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		footerHeight := lipgloss.Height(m.footer.View())
 		remainingHeight := msg.Height - headerHeight - footerHeight - 6
 
-		// Create specific window size messages for each component
 		m.header, headerCmd = m.header.Update(tea.WindowSizeMsg{
 			Width:  msg.Width,
 			Height: headerHeight,
@@ -92,10 +92,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			Height: remainingHeight * 1 / 3,
 		})
 	case agent.Message:
-		// Messages from agent should only go to messages pane
 		m.messagesPane, messagesCmd = m.messagesPane.Update(msg)
+	case tool.Command:
+		m.commandsPane, commandsCmd = m.commandsPane.Update(msg)
 	default:
-		// For any other messages, let all components handle them
 		m.header, headerCmd = m.header.Update(msg)
 		m.footer, footerCmd = m.footer.Update(msg)
 		m.messagesPane, messagesCmd = m.messagesPane.Update(msg)

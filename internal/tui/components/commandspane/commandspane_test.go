@@ -1,12 +1,21 @@
 package commandspane
 
 import (
+	"regexp"
 	"testing"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/datolabs-io/sredo/internal/tool"
 	"github.com/stretchr/testify/assert"
 )
+
+// stripANSI removes ANSI color codes from a string.
+func stripANSI(str string) string {
+	re := regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+	return re.ReplaceAllString(str, "")
+}
 
 // TestNew tests the creation of a new commands pane component.
 func TestNew(t *testing.T) {
@@ -29,11 +38,7 @@ func TestNew(t *testing.T) {
 	assert.NotNil(t, m)
 	assert.Equal(t, theme, m.theme)
 	assert.NotNil(t, m.viewport)
-	assert.NotNil(t, m.containerStyle)
-	assert.NotNil(t, m.textStyle)
-	assert.NotNil(t, m.workdirStyle)
-	assert.NotNil(t, m.commandStyle)
-	assert.NotNil(t, m.titleStyle)
+	assert.Empty(t, m.commands)
 }
 
 // TestUpdate tests the update function of the commands pane component.
@@ -52,18 +57,22 @@ func TestUpdate(t *testing.T) {
 	newModel, cmd := m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 	assert.NotNil(t, newModel)
 	assert.Nil(t, cmd)
-	assert.Equal(t, 100, newModel.maxWidth)
+	assert.Equal(t, 94, newModel.maxWidth) // Width - 6 for padding
 	assert.Equal(t, 50, newModel.maxHeight)
-	assert.Equal(t, 94, newModel.viewport.Width) // maxWidth - 6 for padding
+	assert.Equal(t, 94, newModel.viewport.Width)
 	assert.Equal(t, 50, newModel.viewport.Height)
 
-	// Verify text style is updated with new dimensions
-	oldTextStyle := m.textStyle
-	oldContainerStyle := m.containerStyle
-	m, _ = m.Update(tea.WindowSizeMsg{Width: 200, Height: 100})
-	assert.NotEqual(t, oldTextStyle, m.textStyle, "text style should be updated with new width")
-	assert.Equal(t, oldContainerStyle, m.containerStyle, "container style should remain the same")
-	assert.Equal(t, 194, m.textStyle.GetWidth(), "text style width should be updated to new width - 6")
+	// Test command message
+	now := time.Now()
+	testCmd := tool.Command{
+		Command:          "ls -la",
+		WorkingDirectory: "~/sredo",
+		StartedAt:        now,
+	}
+	m, cmd = m.Update(testCmd)
+	assert.Nil(t, cmd)
+	assert.Len(t, m.commands, 1)
+	assert.Equal(t, testCmd, m.commands[0])
 }
 
 // TestView tests the view function of the commands pane component.
@@ -87,11 +96,25 @@ func TestView(t *testing.T) {
 	// Set dimensions to test rendering
 	m, _ = m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
 
-	view := m.View()
+	// Test initial view (empty commands)
+	view := stripANSI(m.View())
 	assert.NotEmpty(t, view)
+	assert.Contains(t, view, "Commands")
+
+	// Add test command
+	now := time.Now()
+	m.Update(tool.Command{
+		Command:          "ls -la",
+		WorkingDirectory: "~/sredo",
+		StartedAt:        now,
+	})
+
+	// Test view with command
+	view = stripANSI(m.View())
 	assert.Contains(t, view, "Commands")
 	assert.Contains(t, view, "~/sredo")
 	assert.Contains(t, view, "ls -la")
+	assert.Contains(t, view, now.Format("15:04:05"))
 }
 
 // TestInit tests the initialization of the commands pane component.
