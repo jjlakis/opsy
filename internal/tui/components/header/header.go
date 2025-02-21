@@ -4,6 +4,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/muesli/reflow/wrap"
 )
 
 // Model represents a header component that displays the current task.
@@ -55,7 +56,8 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 
 // View renders the header component.
 func (m *Model) View() string {
-	return m.containerStyle.Render(m.textStyle.Bold(true).Render("Task: ") + m.textStyle.Render(m.task))
+	task := m.textStyle.Render(wrap.String(m.task, m.maxWidth-10))
+	return m.containerStyle.Render(m.textStyle.Bold(true).Render("Task: ") + task)
 }
 
 // WithTask returns an Option that sets the task text in the header.
