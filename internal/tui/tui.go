@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"math"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/datolabs-io/sredo/internal/agent"
@@ -71,7 +73,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case tea.WindowSizeMsg:
-		headerHeight := lipgloss.Height(m.header.View())
+		headerHeight := int(math.Ceil(float64(lipgloss.Width(m.task))/float64(msg.Width))) + 3
 		footerHeight := lipgloss.Height(m.footer.View())
 		remainingHeight := msg.Height - headerHeight - footerHeight - 6
 
