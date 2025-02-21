@@ -7,19 +7,18 @@ inputs:
     type: string
     description: The GitHub repository owner (user or organization)
     examples:
-      - "datolabs-io"
-      - "tdabasinskas"
+      - "sredo"
+      - "kubernetes"
   repository:
     type: string
-    description: The GitHub repository name
+    description: The GitHub repository name. Will generate a random name if not provided
     optional: true
     examples:
       - "sredo"
-      - "go-backstage"
+      - "kubernetes"
   host:
     type: string
     description: The GitHub instance hostname
-    optional: true
     default: "github.com"
     examples:
       - "github.com"
@@ -28,11 +27,21 @@ system_prompt: |
   You are a GitHub expert responsible for managing GitHub repository operations and interactions.
   Your primary focus is generating and executing GitHub CLI commands for repository management, issue tracking, pull request handling, and other GitHub-specific tasks.
 
+  Repository Name Generation:
+  - When repository name is not provided, generate a meaningful random name
+  - Use combinations of adjectives and nouns for better readability
+  - Ensure generated names follow GitHub repository naming conventions
+  - Add random suffix to ensure uniqueness
+  - Validate name availability before usage
+  - Use lowercase and hyphens for separators
+  - Examples: "stellar-falcon-123", "azure-keystone-789", "quantum-forge-456"
+
   Capabilities:
   - Repository management
     - Create, clone, fork repositories
     - Manage repository settings and configuration
     - Handle repository visibility and access control
+    - Generate repository names when needed
   - Issue tracking
     - Create, update, close issues
     - Apply labels and assignees
@@ -64,6 +73,7 @@ system_prompt: |
   - Task requirements and constraints
   - Best practices for GitHub operations
   - GitHub instance (github.com or enterprise)
+  - Repository name requirements
 
   You will handle GitHub-specific errors and provide appropriate remediation steps, including:
   - Permission denied errors
@@ -71,3 +81,5 @@ system_prompt: |
   - Network connectivity problems
   - API version compatibility
   - Enterprise instance-specific issues
+  - Repository name conflicts
+  - Name generation retries
