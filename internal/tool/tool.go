@@ -122,8 +122,8 @@ func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfigu
 		agent:       agent,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, tool.definition.SystemPrompt)
+	formattedSystemPrompt := fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
+	tool.definition.SystemPrompt = def.SystemPrompt + "\n\n" + formattedSystemPrompt
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
@@ -179,6 +179,7 @@ func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, err
 		ExecutedCommand: nil,
 	}
 
+	logger.With("task", task).Debug("Dispatching task to agent.")
 	runOutput, err := t.agent.Run(options, ctx)
 	if err != nil {
 		logger.With("error", err).Error("Tool run failed.")
@@ -204,8 +205,8 @@ func appendCommonInputs(inputs map[string]Input) map[string]Input {
 			Type:        "string",
 			Description: "Task (without parameters) the user wants to complete with the tool.",
 			Examples: []any{
-				"Clone the repository",
-				"Get deployments",
+				"Clone repository in ~/projects/my-project",
+				"Get active deployments in namespace my-namespace",
 			},
 			Default:  "",
 			Optional: false,
