@@ -118,9 +118,15 @@ func TestExecTool_Execute(t *testing.T) {
 			inputWorkingDirectory: 123, // Invalid type
 		}
 		output, err := tool.Execute(inputs, context.Background())
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), ErrInvalidToolInputType)
-		assert.Nil(t, output)
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, ExecToolName, output.Tool)
+		assert.Equal(t, "test", output.Result)
+		assert.False(t, output.IsError)
+		assert.NotNil(t, output.ExecutedCommand)
+		assert.Equal(t, "echo 'test'", output.ExecutedCommand.Command)
+		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
+		assert.Equal(t, 0, output.ExecutedCommand.ExitCode)
 	})
 }
 

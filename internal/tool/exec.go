@@ -56,6 +56,14 @@ func NewExecTool(logger *slog.Logger, cfg *config.ToolsConfiguration) *execTool 
 					"curl -X GET https://api.example.com/data",
 				},
 			},
+			inputWorkingDirectory: {
+				Description: "The working directory for the command",
+				Type:        "string",
+				Examples: []any{
+					"/path/to/working/directory",
+					".",
+				},
+			},
 		},
 	}
 
@@ -89,17 +97,7 @@ func (t *execTool) Execute(inputs map[string]any, ctx context.Context) (*Output,
 		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputCommand)
 	}
 
-	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
-	if !ok {
-		workingDirectory = "."
-	}
-
-	if workingDirectory == "." {
-		if pwd, err := os.Getwd(); err == nil {
-			workingDirectory = pwd
-		}
-	}
-
+	workingDirectory := getWorkingDirectory(inputs)
 	ctx, cancel := context.WithTimeout(ctx, t.getTimeout())
 	defer cancel()
 
@@ -146,4 +144,22 @@ func (t *execTool) getTimeout() time.Duration {
 	}
 
 	return time.Duration(timeout) * time.Second
+}
+
+// getWorkingDirectory returns the working directory for the Exec tool.
+func getWorkingDirectory(inputs map[string]any) string {
+
+	currentDir := "." + string(os.PathSeparator)
+	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
+	if !ok || workingDirectory == "." {
+		workingDirectory = currentDir
+	}
+
+	if strings.HasPrefix(workingDirectory, currentDir) {
+		if pwd, err := os.Getwd(); err == nil {
+			workingDirectory = pwd + strings.TrimPrefix(workingDirectory, currentDir)
+		}
+	}
+
+	return strings.TrimRight(workingDirectory, string(os.PathSeparator))
 }
