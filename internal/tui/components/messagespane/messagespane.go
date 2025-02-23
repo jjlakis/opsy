@@ -2,6 +2,7 @@ package messagespane
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
@@ -149,7 +150,7 @@ func (m *Model) renderMessages() {
 		}
 
 		author = authorStyle.Render(fmt.Sprintf("%s:", author))
-		messageText := m.messageStyle().Render(message.Message)
+		messageText := m.messageStyle().Render(sanitizeMessage(message.Message))
 
 		output.WriteString(fmt.Sprintf("%s%s", timestamp, author))
 		output.WriteString("\n")
@@ -158,4 +159,16 @@ func (m *Model) renderMessages() {
 	}
 
 	m.viewport.SetContent(output.String())
+}
+
+// sanitizeMessage removes unnecessary symbols from the message.
+func sanitizeMessage(message string) string {
+	// Remove XML-style tags from the message
+	message = regexp.MustCompile(`<[^>]*>`).ReplaceAllString(message, "")
+
+	// Remove trailing spaces and newlines
+	message = strings.TrimSpace(message)
+	message = strings.Trim(message, "\n")
+
+	return message
 }
