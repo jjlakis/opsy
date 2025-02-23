@@ -188,17 +188,16 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 		for _, block := range message.Content {
 			switch block := block.AsUnion().(type) {
 			case anthropic.TextBlock:
-				if a.communication.Messages != nil {
-					a.communication.Messages <- Message{
-						Tool:      opts.Caller,
-						Message:   block.Text,
-						Timestamp: time.Now(),
-					}
-					// TODO(t-dabasinskas): Remove this once we update UI
-					logger.With("message", block.Text).Debug("Agent message.")
+				a.communication.Messages <- Message{
+					Tool:      opts.Caller,
+					Message:   block.Text,
+					Timestamp: time.Now(),
 				}
+				// TODO(t-dabasinskas): Remove this once we update UI
+				logger.With("message", block.Text).Debug("Agent message.")
 			case anthropic.ToolUseBlock:
 				isError := false
+				resultBlockContent := ""
 				toolInputs := map[string]any{}
 
 				if err := json.Unmarshal(block.Input, &toolInputs); err != nil {
@@ -226,26 +225,25 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 
 				output = append(output, *toolOutput)
 
-				// Show messages from the tools unless they are executed command results:
+				// Handle messages from all the tools except the Exec:
 				if toolOutput.Result != "" && toolOutput.ExecutedCommand == nil {
+					resultBlockContent = toolOutput.Result
 					a.communication.Messages <- Message{
 						Tool:      opts.Caller,
 						Message:   toolOutput.Result,
 						Timestamp: time.Now(),
 					}
 				}
+				logger.With("output", toolOutput).Warn(">>>>Tool result.")
 
+				// Handle messages from the Exec tool:
 				if toolOutput.ExecutedCommand != nil {
+					resultBlockContent = toolOutput.ExecutedCommand.Output
+					isError = toolOutput.ExecutedCommand.ExitCode != 0
 					a.communication.Commands <- *toolOutput.ExecutedCommand
 				}
 
-				outputJSON, err := json.Marshal(toolOutput)
-				if err != nil {
-					logger.With("error", err).Error("Failed to marshal tool output.")
-					continue
-				}
-
-				resultBlock := anthropic.NewToolResultBlock(block.ID, string(outputJSON), isError)
+				resultBlock := anthropic.NewToolResultBlock(block.ID, resultBlockContent, isError)
 				toolResults = append(toolResults, resultBlock)
 			}
 		}
