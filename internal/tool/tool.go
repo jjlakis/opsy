@@ -106,6 +106,8 @@ const (
 	inputTask = "task"
 	// inputWorkingDirectory is the input parameter for the working directory to use for the tool.
 	inputWorkingDirectory = "working_directory"
+	// context is additional context to use for the tool.
+	inputContext = "context"
 )
 
 // New creates a new tool.
@@ -122,8 +124,8 @@ func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfigu
 		agent:       agent,
 	}
 
-	formattedSystemPrompt := fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
-	tool.definition.SystemPrompt = def.SystemPrompt + "\n\n" + formattedSystemPrompt
+	tool.definition.SystemPrompt = fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
+	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, tool.definition.SystemPrompt)
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
@@ -220,6 +222,16 @@ func appendCommonInputs(inputs map[string]Input) map[string]Input {
 			},
 			Default:  ".",
 			Optional: true,
+		},
+		inputContext: {
+			Type:        "object",
+			Description: "Additional parameters and context to use for the tool.",
+			Examples: []any{
+				map[string]string{
+					"branch":  "main",
+					"cluster": "my-cluster",
+				},
+			},
 		},
 	}
 

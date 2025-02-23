@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -45,7 +46,7 @@ const (
 func NewExecTool(logger *slog.Logger, cfg *config.ToolsConfiguration) *execTool {
 	definition := Definition{
 		DisplayName: "Exec",
-		Description: "Executes the provided shell command.",
+		Description: fmt.Sprintf("Executes the provided shell command via the `%s` shell.", cfg.Exec.Shell),
 		Inputs: map[string]Input{
 			inputCommand: {
 				Description: "The shell command, including all the arguments, to execute",
@@ -148,18 +149,23 @@ func (t *execTool) getTimeout() time.Duration {
 
 // getWorkingDirectory returns the working directory for the Exec tool.
 func getWorkingDirectory(inputs map[string]any) string {
-
-	currentDir := "." + string(os.PathSeparator)
-	workingDirectory, ok := inputs[inputWorkingDirectory].(string)
-	if !ok || workingDirectory == "." {
-		workingDirectory = currentDir
+	currentDir, _ := os.Getwd()
+	currentDir = strings.TrimRight(currentDir, string(os.PathSeparator))
+	workingDir, ok := inputs[inputWorkingDirectory].(string)
+	if !ok || workingDir == "." {
+		return currentDir
 	}
 
-	if strings.HasPrefix(workingDirectory, currentDir) {
-		if pwd, err := os.Getwd(); err == nil {
-			workingDirectory = pwd + strings.TrimPrefix(workingDirectory, currentDir)
-		}
+	// Handle both relative paths (with ./) and paths without separators
+	if strings.HasPrefix(workingDir, "./") || !strings.Contains(workingDir, string(os.PathSeparator)) {
+		return filepath.Join(currentDir, strings.TrimPrefix(workingDir, "./"))
 	}
 
-	return strings.TrimRight(workingDirectory, string(os.PathSeparator))
+	// Handle absolute paths or paths relative to current directory
+	currentDir += string(os.PathSeparator)
+	if strings.HasPrefix(workingDir, currentDir) {
+		workingDir = filepath.Join(currentDir, strings.TrimPrefix(workingDir, currentDir))
+	}
+
+	return strings.TrimRight(workingDir, string(os.PathSeparator))
 }

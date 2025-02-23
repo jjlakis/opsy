@@ -2,6 +2,7 @@ package tool
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"testing"
@@ -37,7 +38,7 @@ func TestNewExecTool(t *testing.T) {
 	t.Run("initializes with correct values", func(t *testing.T) {
 		assert.Equal(t, ExecToolName, tool.GetName())
 		assert.Equal(t, "Exec", tool.GetDisplayName())
-		assert.Equal(t, "Executes the provided shell command.", tool.GetDescription())
+		assert.Equal(t, fmt.Sprintf("Executes the provided shell command via the `%s` shell.", cfg.Exec.Shell), tool.GetDescription())
 		assert.NotNil(t, tool.GetInputSchema())
 		assert.Equal(t, cfg, tool.config)
 	})
