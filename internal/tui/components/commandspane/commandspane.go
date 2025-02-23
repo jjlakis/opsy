@@ -132,23 +132,31 @@ func (m *Model) titleStyle() lipgloss.Style {
 // renderCommands formats and renders all commands
 func (m *Model) renderCommands() {
 	output := strings.Builder{}
-	output.WriteString(m.titleStyle().Render(title))
-	output.WriteString("\n\n")
+	content := strings.Builder{}
+	content.WriteString(m.titleStyle().Render(title))
+	content.WriteString("\n\n")
 
 	for _, cmd := range m.commands {
 		timestamp := m.timestampStyle().Render(fmt.Sprintf("[%s]", cmd.StartedAt.Format("15:04:05")))
 		workdir := m.workdirStyle().Render(cmd.WorkingDirectory)
 
-		commandWidth := m.maxWidth-lipgloss.Width(timestamp)-lipgloss.Width(workdir)
+		commandWidth := m.maxWidth - lipgloss.Width(timestamp) - lipgloss.Width(workdir)
 		command := m.commandStyle().Width(commandWidth).Render(cmd.Command)
 
 		if lipgloss.Width(cmd.Command) >= commandWidth {
 			command = m.commandStyle().Width(m.maxWidth).Render(wrap.String(cmd.Command, commandWidth))
 		}
 
-		output.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, command))
-		output.WriteString("\n\n")
+		content.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, command))
+		content.WriteString("\n\n")
 	}
 
+	// Wrap all content in a background-styled container
+	contentStyle := lipgloss.NewStyle().
+		Background(m.theme.BaseColors.Base01).
+		Width(m.maxWidth).
+		Height(m.maxHeight)
+
+	output.WriteString(contentStyle.Render(content.String()))
 	m.viewport.SetContent(output.String())
 }

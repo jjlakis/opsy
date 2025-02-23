@@ -75,7 +75,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		headerHeight := int(math.Ceil(float64(lipgloss.Width(m.task))/float64(msg.Width))) * 2
 		footerHeight := lipgloss.Height(m.footer.View())
-		remainingHeight := msg.Height - headerHeight - footerHeight - 7
+		remainingHeight := msg.Height - headerHeight - footerHeight - 8
 
 		m.header, headerCmd = m.header.Update(tea.WindowSizeMsg{
 			Width:  msg.Width,
