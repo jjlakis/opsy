@@ -84,6 +84,8 @@ func (m *Model) View() string {
 func WithTheme(theme thememanager.Theme) Option {
 	return func(m *Model) {
 		m.theme = theme
+		m.containerStyle = containerStyle(theme, m.maxWidth)
+		m.textStyle = textStyle(theme)
 	}
 }
 
