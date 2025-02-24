@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
 	"testing"
 
 	"github.com/datolabs-io/sredo/internal/agent"
@@ -187,6 +189,67 @@ inputs:
 		require.NoError(t, err)
 		assert.Len(t, tm.GetTools(), 1) // Should only have exec tool
 	})
+
+	t.Run("handles invalid executable path", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		// Create a tool with invalid executable path
+		err := os.WriteFile(filepath.Join(tmpDir, "invalid_exec.yaml"), []byte(`
+display_name: "Invalid Exec Tool"
+description: "A tool with invalid executable"
+executable: "/nonexistent/path"
+inputs:
+  test_input:
+    type: "string"
+    description: "Test input"
+`), 0644)
+		require.NoError(t, err)
+
+		tm := New(
+			WithDirectory(tmpDir),
+			WithAgent(newTestAgent()),
+		)
+		err = tm.LoadTools()
+		require.NoError(t, err)
+		assert.Len(t, tm.GetTools(), 1) // Should only have exec tool
+	})
+
+	t.Run("handles_invalid_system_prompt", func(t *testing.T) {
+		// Create a temporary directory for the test
+		dir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "invalid_prompt.yaml"), []byte(`
+display_name: Invalid Prompt Tool
+description: A tool with an invalid system prompt
+rules:
+  - "valid rule"
+executable: /path/to/nonexistent/executable # This will cause system prompt validation to fail
+inputs:
+  input1:
+    type: string
+    description: Test input
+`), 0644))
+
+		// Create a test logger that captures logs
+		var logBuffer strings.Builder
+		logger := slog.New(slog.NewTextHandler(&logBuffer, &slog.HandlerOptions{
+			Level: slog.LevelError,
+		}))
+
+		// Create a tool manager with the test directory and logger
+		tm := New(WithDirectory(dir), WithLogger(logger))
+
+		// Load tools
+		require.NoError(t, tm.LoadTools())
+
+		// Verify that the error was logged
+		require.Contains(t, logBuffer.String(), ErrInvalidToolDefinition)
+		require.Contains(t, logBuffer.String(), "invalid_prompt")
+
+		// Verify that getting the invalid tool returns an error
+		_, err := tm.GetTool("invalid_prompt")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), ErrToolNotFound)
+	})
 }
 
 // TestGetTool tests retrieving specific tools.
@@ -240,4 +303,46 @@ func TestGetTools(t *testing.T) {
 	execTool, ok := tools[tool.ExecToolName]
 	require.True(t, ok, "exec tool should be present")
 	assert.Equal(t, "Exec", execTool.GetDisplayName())
+}
+
+// TestConcurrentAccess tests thread safety of the tool manager.
+func TestConcurrentAccess(t *testing.T) {
+	tm := New(
+		WithDirectory("testdata"),
+		WithAgent(newTestAgent()),
+	)
+	require.NoError(t, tm.LoadTools())
+
+	var wg sync.WaitGroup
+	numGoroutines := 10
+
+	// Test concurrent tool access
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			tools := tm.GetTools()
+			assert.NotEmpty(t, tools)
+			tool, err := tm.GetTool("test_tool")
+			assert.NoError(t, err)
+			assert.Equal(t, "Test Tool", tool.GetDisplayName())
+		}()
+	}
+	wg.Wait()
+
+	// Test concurrent tool loading and access
+	wg.Add(numGoroutines * 2)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			err := tm.LoadTools()
+			assert.NoError(t, err)
+		}()
+		go func() {
+			defer wg.Done()
+			tools := tm.GetTools()
+			assert.NotEmpty(t, tools)
+		}()
+	}
+	wg.Wait()
 }
