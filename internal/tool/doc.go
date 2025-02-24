@@ -10,7 +10,7 @@ Tools are defined using the Definition struct, which includes:
 
   - DisplayName: Human-readable name shown in the UI
   - Description: Detailed description of the tool's purpose
-  - SystemPrompt: Custom prompt used when the tool is selected
+  - Rules: Additional rules the tool must follow
   - Inputs: Map of input parameters the tool accepts
   - Executable: Optional path to an executable the tool uses
 
@@ -28,6 +28,7 @@ Every tool automatically includes common inputs:
 
   - task: The task to be executed (required)
   - working_directory: Directory to execute in (optional, defaults to ".")
+  - context: Additional context parameters (optional)
 
 # Tool Interface
 
@@ -46,6 +47,14 @@ The package includes two main types of tools:
 1. Regular tools (tool): Base implementation that can be extended
 2. Exec tools (execTool): Special tools that execute shell commands
 
+The exec tool has specific features:
+
+  - Command execution with configurable timeouts
+  - Working directory resolution (absolute, relative, and ./ paths)
+  - Command output and exit code capture
+  - Timestamp tracking for command execution
+  - Process group management for proper cleanup
+
 # Example Usage
 
 Creating a new tool:
@@ -53,7 +62,7 @@ Creating a new tool:
 	def := tool.Definition{
 		DisplayName: "My Tool",
 		Description: "Does something useful",
-		SystemPrompt: "You are a helpful tool",
+		Rules: []string{"Follow these rules"},
 		Inputs: map[string]tool.Input{
 			"param": {
 				Type: "string",
@@ -69,6 +78,13 @@ Creating an exec tool:
 
 	execTool := tool.NewExecTool(logger, cfg)
 
+Using the exec tool:
+
+	output, err := execTool.Execute(map[string]any{
+		"command": "ls -la",
+		"working_directory": "./mydir",
+	}, ctx)
+
 # Error Handling
 
 The package defines several error types for validation:
@@ -83,6 +99,10 @@ The package defines several error types for validation:
 # Thread Safety
 
 Tools are designed to be thread-safe and can be executed concurrently.
-Each execution gets its own context and timeout based on configuration.
+Each execution:
+  - Gets its own context and timeout based on configuration
+  - Has isolated working directory resolution
+  - Maintains independent command state and output
+  - Uses process groups for clean termination
 */
 package tool
