@@ -151,21 +151,22 @@ func (t *execTool) getTimeout() time.Duration {
 func getWorkingDirectory(inputs map[string]any) string {
 	currentDir, _ := os.Getwd()
 	currentDir = strings.TrimRight(currentDir, string(os.PathSeparator))
+
 	workingDir, ok := inputs[inputWorkingDirectory].(string)
 	if !ok || workingDir == "." {
 		return currentDir
 	}
 
-	// Handle both relative paths (with ./) and paths without separators
-	if strings.HasPrefix(workingDir, "./") || !strings.Contains(workingDir, string(os.PathSeparator)) {
-		return filepath.Join(currentDir, strings.TrimPrefix(workingDir, "./"))
+	// Handle paths starting with ./
+	if strings.HasPrefix(workingDir, "."+string(os.PathSeparator)) {
+		return strings.TrimRight(filepath.Join(currentDir, strings.TrimPrefix(workingDir, "."+string(os.PathSeparator))), string(os.PathSeparator))
 	}
 
-	// Handle absolute paths or paths relative to current directory
-	currentDir += string(os.PathSeparator)
-	if strings.HasPrefix(workingDir, currentDir) {
-		workingDir = filepath.Join(currentDir, strings.TrimPrefix(workingDir, currentDir))
+	// Handle absolute paths
+	if strings.HasPrefix(workingDir, string(os.PathSeparator)) {
+		return strings.TrimRight(workingDir, string(os.PathSeparator))
 	}
 
-	return strings.TrimRight(workingDir, string(os.PathSeparator))
+	// Handle relative paths (without ./ prefix)
+	return strings.TrimRight(filepath.Join(currentDir, workingDir), string(os.PathSeparator))
 }
