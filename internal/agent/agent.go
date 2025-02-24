@@ -2,9 +2,9 @@ package agent
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -145,7 +145,13 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 		ctx = a.ctx
 	}
 
-	prompt := assets.AgentSystemPrompt
+	prompt, err := assets.RenderAgentSystemPrompt(&assets.AgentSystemPromptData{
+		Shell: a.cfg.Tools.Exec.Shell,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", assets.ErrToolRenderingPrompt, err)
+	}
+
 	if opts.Prompt != "" {
 		prompt = opts.Prompt
 	}

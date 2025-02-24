@@ -11,10 +11,6 @@ inputs:
       - "project"
       - "/path/to/repo"
     optional: false
-system_prompt: |
-  You are a Git expert responsible for managing version control operations.
-  Your primary focus is generating and executing Git commands for repository management, branching, committing, and synchronization tasks.
-
-  General rules:
-  - Always use `exec` tool to execute `git` commands.
-  - If you create a new branch, always make sure to switch to it.
+rules:
+  - 'Never commit to the main or master branch directly.'
+  - 'Use conventional commit messages in a format of `type(scope): description`.'

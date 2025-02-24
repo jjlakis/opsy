@@ -1,0 +1,10 @@
+Generate and execute shell command to complete the following task: {{.Task}}.
+The command should be executed in the following directory: `{{.WorkingDirectory}}`.
+Additional parameters for completing the task:
+
+{{range $key, $value := .Params}}
+- `{{ $key }}`: `{{ $value }}`
+{{end}}
+{{ range $key, $value := .Context }}
+- `{{ $key }}`: `{{ $value }}`
+{{end}}

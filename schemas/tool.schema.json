@@ -6,7 +6,6 @@
   "required": [
     "display_name",
     "description",
-    "system_prompt",
     "inputs"
   ],
   "properties": {
@@ -18,9 +17,12 @@
       "type": "string",
       "description": "The description of the tool as it will be displayed in the UI"
     },
-    "system_prompt": {
-      "type": "string",
-      "description": "The system prompt to use when the tool is selected"
+    "rules": {
+      "type": "array",
+      "description": "Additional rules the tool must follow",
+      "items": {
+        "type": "string"
+      }
     },
     "executable": {
       "type": "string",
