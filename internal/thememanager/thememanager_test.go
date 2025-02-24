@@ -2,6 +2,7 @@ package thememanager
 
 import (
 	"log/slog"
+	"sync"
 	"testing"
 
 	"github.com/charmbracelet/lipgloss"
@@ -135,4 +136,76 @@ func TestThemeManager_WithDirectory(t *testing.T) {
 			assert.NotNil(t, tm.GetTheme())
 		})
 	}
+}
+
+// TestThemeManager_EmptyName verifies empty theme name behavior:
+// - Empty name loads default theme
+// - Default theme is valid and complete
+func TestThemeManager_EmptyName(t *testing.T) {
+	tm := New()
+	err := tm.LoadTheme("")
+	assert.NoError(t, err)
+
+	theme := tm.GetTheme()
+	assert.NotNil(t, theme)
+
+	// Verify all colors are present in default theme
+	assert.NotEmpty(t, theme.BaseColors.Base00)
+	assert.NotEmpty(t, theme.BaseColors.Base01)
+	assert.NotEmpty(t, theme.BaseColors.Base02)
+	assert.NotEmpty(t, theme.BaseColors.Base03)
+	assert.NotEmpty(t, theme.BaseColors.Base04)
+	assert.NotEmpty(t, theme.AccentColors.Accent0)
+	assert.NotEmpty(t, theme.AccentColors.Accent1)
+	assert.NotEmpty(t, theme.AccentColors.Accent2)
+}
+
+// TestThemeManager_ConcurrentAccess verifies thread safety:
+// - Concurrent theme loading
+// - Concurrent theme reading
+func TestThemeManager_ConcurrentAccess(t *testing.T) {
+	tm := New()
+	var wg sync.WaitGroup
+	numGoroutines := 10
+
+	// Test concurrent loading
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			err := tm.LoadTheme("default")
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	// Test concurrent reading
+	wg.Add(numGoroutines)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			theme := tm.GetTheme()
+			assert.NotNil(t, theme)
+			assert.NotEmpty(t, theme.BaseColors.Base00)
+		}()
+	}
+	wg.Wait()
+
+	// Test mixed loading and reading
+	wg.Add(numGoroutines * 2)
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			err := tm.LoadTheme("default")
+			assert.NoError(t, err)
+		}()
+		go func() {
+			defer wg.Done()
+			theme := tm.GetTheme()
+			if theme != nil {
+				assert.NotEmpty(t, theme.BaseColors.Base00)
+			}
+		}()
+	}
+	wg.Wait()
 }

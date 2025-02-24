@@ -2,6 +2,7 @@ package thememanager
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/charmbracelet/lipgloss"
 	"gopkg.in/yaml.v3"
@@ -12,6 +13,13 @@ const (
 	ErrMissingColors = "missing required colors"
 	// ErrDecodingTheme is returned when theme decoding fails.
 	ErrDecodingTheme = "failed to decode theme"
+	// ErrInvalidColor is returned when a color is not a valid hex code.
+	ErrInvalidColor = "invalid color format"
+)
+
+var (
+	// hexColorRegex matches valid hex color codes (#RRGGBB).
+	hexColorRegex = regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`)
 )
 
 // Theme defines the color palette for the application TUI.
@@ -46,6 +54,17 @@ type AccentColors struct {
 	Accent2 lipgloss.Color `yaml:"accent2"`
 }
 
+// validateColor checks if a color is a valid hex color code.
+func validateColor(name string, color lipgloss.Color) error {
+	if color == "" {
+		return fmt.Errorf("%s: %s is empty", ErrMissingColors, name)
+	}
+	if !hexColorRegex.MatchString(string(color)) {
+		return fmt.Errorf("%s: %s=%s must be a valid hex color code (#RRGGBB)", ErrInvalidColor, name, color)
+	}
+	return nil
+}
+
 // UnmarshalYAML implements the yaml.Unmarshaler interface.
 func (t *Theme) UnmarshalYAML(value *yaml.Node) error {
 	type ThemeYAML Theme
@@ -70,15 +89,10 @@ func (t *Theme) UnmarshalYAML(value *yaml.Node) error {
 		{"accent.accent2", tmp.AccentColors.Accent2},
 	}
 
-	var missing []string
 	for _, r := range required {
-		if r.color == "" {
-			missing = append(missing, r.name)
+		if err := validateColor(r.name, r.color); err != nil {
+			return err
 		}
-	}
-
-	if len(missing) > 0 {
-		return fmt.Errorf("%s: %v", ErrMissingColors, missing)
 	}
 
 	*t = Theme(tmp)
