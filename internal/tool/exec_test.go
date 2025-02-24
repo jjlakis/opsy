@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -194,6 +195,9 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 	cfg := newTestConfig()
 	tool := NewExecTool(logger, cfg)
 
+	// Create a temporary directory for testing
+	tmpDir := t.TempDir()
+
 	t.Run("executes in specified working directory", func(t *testing.T) {
 		inputs := map[string]any{
 			inputCommand:          "pwd",
@@ -239,6 +243,74 @@ func TestExecTool_WorkingDirectory(t *testing.T) {
 		assert.NotNil(t, output)
 		assert.Equal(t, pwd, output.ExecutedCommand.WorkingDirectory)
 		assert.Contains(t, output.Result, pwd)
+	})
+
+	t.Run("resolves relative path with ./ prefix", func(t *testing.T) {
+		pwd, err := os.Getwd()
+		require.NoError(t, err)
+		subDir := filepath.Join(tmpDir, "subdir")
+		err = os.Mkdir(subDir, 0755)
+		require.NoError(t, err)
+
+		// Get the relative path from pwd to subdir
+		relPath, err := filepath.Rel(pwd, subDir)
+		require.NoError(t, err)
+		relPathWithPrefix := "./" + relPath
+
+		inputs := map[string]any{
+			inputCommand:          "pwd",
+			inputWorkingDirectory: relPathWithPrefix,
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, subDir, output.ExecutedCommand.WorkingDirectory)
+		assert.Contains(t, output.Result, subDir)
+	})
+
+	t.Run("resolves relative path without ./ prefix", func(t *testing.T) {
+		pwd, err := os.Getwd()
+		require.NoError(t, err)
+		subDir := filepath.Join(tmpDir, "subdir2")
+		err = os.Mkdir(subDir, 0755)
+		require.NoError(t, err)
+
+		// Get the relative path from pwd to subdir
+		relPath, err := filepath.Rel(pwd, subDir)
+		require.NoError(t, err)
+
+		inputs := map[string]any{
+			inputCommand:          "pwd",
+			inputWorkingDirectory: relPath,
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, subDir, output.ExecutedCommand.WorkingDirectory)
+		assert.Contains(t, output.Result, subDir)
+	})
+
+	t.Run("trims trailing path separators", func(t *testing.T) {
+		pwd, err := os.Getwd()
+		require.NoError(t, err)
+		subDir := filepath.Join(tmpDir, "subdir3")
+		err = os.Mkdir(subDir, 0755)
+		require.NoError(t, err)
+
+		// Get the relative path from pwd to subdir
+		relPath, err := filepath.Rel(pwd, subDir)
+		require.NoError(t, err)
+		relPathWithSeparator := relPath + string(os.PathSeparator)
+
+		inputs := map[string]any{
+			inputCommand:          "pwd",
+			inputWorkingDirectory: relPathWithSeparator,
+		}
+		output, err := tool.Execute(inputs, context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, output)
+		assert.Equal(t, subDir, output.ExecutedCommand.WorkingDirectory)
+		assert.Contains(t, output.Result, subDir)
 	})
 }
 
