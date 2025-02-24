@@ -39,6 +39,7 @@
     "textinput",
     "thememanager",
     "themer",
+    "tmpl",
     "toolmanager",
     "wordwrap"
   ]
