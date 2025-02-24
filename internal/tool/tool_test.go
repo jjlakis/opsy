@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/datolabs-io/sredo/assets"
 	"github.com/datolabs-io/sredo/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -46,10 +45,9 @@ func TestNewTool(t *testing.T) {
 		},
 	}
 	definition := Definition{
-		DisplayName:  "Test Tool",
-		Description:  "Test Description",
-		SystemPrompt: "Test Prompt",
-		Inputs:       make(map[string]Input),
+		DisplayName: "Test Tool",
+		Description: "Test Description",
+		Inputs:      make(map[string]Input),
 	}
 
 	runner := newMockRunner(nil, nil)
@@ -59,8 +57,6 @@ func TestNewTool(t *testing.T) {
 		assert.Equal(t, "test", tool.name)
 		assert.Equal(t, "Test Tool", tool.GetDisplayName())
 		assert.Equal(t, "Test Description", tool.GetDescription())
-		expectedPrompt := "Test Prompt\n\n" + fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
-		assert.Equal(t, expectedPrompt, tool.definition.SystemPrompt)
 		assert.NotNil(t, tool.GetInputSchema())
 		assert.Equal(t, cfg, tool.config)
 		assert.Equal(t, runner, tool.agent)
@@ -88,10 +84,9 @@ func TestToolGetters(t *testing.T) {
 	}
 
 	definition := Definition{
-		DisplayName:  "Display Name",
-		Description:  "Description",
-		SystemPrompt: "System Prompt",
-		Inputs:       inputs,
+		DisplayName: "Display Name",
+		Description: "Description",
+		Inputs:      inputs,
 	}
 
 	runner := newMockRunner(nil, nil)
@@ -309,9 +304,8 @@ func TestAppendCommonInputs(t *testing.T) {
 func TestValidateToolDefinition(t *testing.T) {
 	t.Run("validates valid tool definition", func(t *testing.T) {
 		def := &Definition{
-			DisplayName:  "Valid Tool",
-			Description:  "Valid Description",
-			SystemPrompt: "Valid Prompt",
+			DisplayName: "Valid Tool",
+			Description: "Valid Description",
 			Inputs: map[string]Input{
 				"input1": {
 					Type:        "string",
@@ -328,11 +322,10 @@ func TestValidateToolDefinition(t *testing.T) {
 
 	t.Run("validates tool definition with executable", func(t *testing.T) {
 		def := &Definition{
-			DisplayName:  "Valid Tool",
-			Description:  "Valid Description",
-			SystemPrompt: "Valid Prompt",
-			Executable:   "ls", // Common executable that should exist
-			Inputs:       map[string]Input{},
+			DisplayName: "Valid Tool",
+			Description: "Valid Description",
+			Executable:  "ls", // Common executable that should exist
+			Inputs:      map[string]Input{},
 		}
 		err := ValidateDefinition(def)
 		assert.NoError(t, err)
@@ -340,11 +333,10 @@ func TestValidateToolDefinition(t *testing.T) {
 
 	t.Run("validates tool definition with non-existent executable", func(t *testing.T) {
 		def := &Definition{
-			DisplayName:  "Invalid Tool",
-			Description:  "Invalid Description",
-			SystemPrompt: "Invalid Prompt",
-			Executable:   "non-existent-executable",
-			Inputs:       map[string]Input{},
+			DisplayName: "Invalid Tool",
+			Description: "Invalid Description",
+			Executable:  "non-existent-executable",
+			Inputs:      map[string]Input{},
 		}
 		err := ValidateDefinition(def)
 		assert.ErrorContains(t, err, ErrToolExecutableNotFound)
@@ -362,9 +354,8 @@ func TestValidateToolDefinition(t *testing.T) {
 
 	t.Run("validates input fields", func(t *testing.T) {
 		def := &Definition{
-			DisplayName:  "Tool",
-			Description:  "Description",
-			SystemPrompt: "Prompt",
+			DisplayName: "Tool",
+			Description: "Description",
 			Inputs: map[string]Input{
 				"input1": {},
 			},
@@ -386,9 +377,8 @@ func TestValidateToolDefinition(t *testing.T) {
 
 	t.Run("allows empty inputs", func(t *testing.T) {
 		def := &Definition{
-			DisplayName:  "Tool",
-			Description:  "Description",
-			SystemPrompt: "Prompt",
+			DisplayName: "Tool",
+			Description: "Description",
 		}
 		err := ValidateDefinition(def)
 		assert.NoError(t, err)
@@ -413,9 +403,8 @@ func TestToolInterfaceCompliance(t *testing.T) {
 		},
 	}
 	def := Definition{
-		DisplayName:  "Test Tool",
-		Description:  "Test Description",
-		SystemPrompt: "Test Prompt",
+		DisplayName: "Test Tool",
+		Description: "Test Description",
 		Inputs: map[string]Input{
 			"test": {
 				Type:        "string",
