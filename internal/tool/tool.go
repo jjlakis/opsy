@@ -2,7 +2,6 @@ package tool
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -52,8 +51,8 @@ type Definition struct {
 	DisplayName string `yaml:"display_name"`
 	// Description is the description of the tool as it will be displayed in the UI.
 	Description string `yaml:"description"`
-	// SystemPrompt is the system prompt to use when the tool is selected.
-	SystemPrompt string `yaml:"system_prompt"`
+	// Rules is additional rules the tool must follow.
+	Rules []string `yaml:"rules"`
 	// Inputs is the inputs for the tool.
 	Inputs map[string]Input `yaml:"inputs"`
 	// Executable is the executable to use to execute the tool.
@@ -124,8 +123,6 @@ func New(n string, def Definition, logger *slog.Logger, cfg *config.ToolsConfigu
 		agent:       agent,
 	}
 
-	tool.definition.SystemPrompt = fmt.Sprintf(assets.ToolSystemPrompt, cfg.Exec.Shell)
-	tool.definition.SystemPrompt = fmt.Sprintf("%s\n\n%s", def.SystemPrompt, tool.definition.SystemPrompt)
 	tool.logger.Debug("Tool loaded.")
 
 	return tool
@@ -164,14 +161,39 @@ func (t *tool) Execute(inputs map[string]any, ctx context.Context) (*Output, err
 		return nil, fmt.Errorf("%s: %s", ErrInvalidToolInputType, inputTask)
 	}
 
-	marshaledInputs, err := json.MarshalIndent(inputs, "", "  ")
+	workingDirectory := getWorkingDirectory(inputs)
+	toolContext, ok := inputs[inputContext].(map[string]string)
+	if !ok {
+		toolContext = map[string]string{}
+	}
+
+	// Remove common inputs from the inputs map:
+	delete(inputs, inputTask)
+	delete(inputs, inputWorkingDirectory)
+	delete(inputs, inputContext)
+
+	systemPrompt, err := assets.RenderToolSystemPrompt(&assets.ToolSystemPromptData{
+		Name:       t.GetDisplayName(),
+		Executable: t.definition.Executable,
+		Rules:      t.definition.Rules,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrToolMarshalingInputs, err)
+		return nil, fmt.Errorf("%s: %w", assets.ErrToolRenderingPrompt, err)
+	}
+
+	userPrompt, err := assets.RenderToolUserPrompt(&assets.ToolUserPromptData{
+		Task:             task,
+		WorkingDirectory: workingDirectory,
+		Params:           inputs,
+		Context:          toolContext,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", assets.ErrToolRenderingPrompt, err)
 	}
 
 	options := &RunOptions{
-		Task:   fmt.Sprintf(assets.ToolUserPrompt, t.definition.Executable, task, marshaledInputs),
-		Prompt: t.definition.SystemPrompt,
+		Task:   userPrompt,
+		Prompt: systemPrompt,
 		Caller: t.GetDisplayName(),
 		Tools:  map[string]Tool{ExecToolName: NewExecTool(t.logger, t.config)},
 	}
