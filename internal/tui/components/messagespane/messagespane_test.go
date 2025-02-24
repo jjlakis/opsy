@@ -1,11 +1,14 @@
 package messagespane
 
 import (
+	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/datolabs-io/sredo/internal/agent"
 	"github.com/datolabs-io/sredo/internal/thememanager"
 	"github.com/stretchr/testify/assert"
@@ -134,4 +137,196 @@ func TestInit(t *testing.T) {
 	m := New(WithTheme(theme))
 	cmd := m.Init()
 	assert.Nil(t, cmd)
+}
+
+// TestMessageSanitization tests the message sanitization functionality.
+func TestMessageSanitization(t *testing.T) {
+	theme := thememanager.Theme{
+		BaseColors: thememanager.BaseColors{
+			Base01: "#000000",
+		},
+	}
+	m := New(WithTheme(theme))
+	m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "removes XML tags",
+			input:    "<tag>content</tag>",
+			expected: "content",
+		},
+		{
+			name:     "trims whitespace",
+			input:    "  message  \n\n",
+			expected: "message",
+		},
+		{
+			name:     "handles multiple tags",
+			input:    "<tag1>content1</tag1><tag2>content2</tag2>",
+			expected: "content1content2",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m.Update(agent.Message{
+				Message:   tc.input,
+				Timestamp: time.Now(),
+			})
+			view := stripANSI(m.View())
+			assert.Contains(t, view, tc.expected)
+			assert.NotContains(t, view, "<tag>")
+		})
+	}
+}
+
+// TestLongMessageWrapping tests the wrapping of long messages.
+func TestLongMessageWrapping(t *testing.T) {
+	theme := thememanager.Theme{
+		BaseColors: thememanager.BaseColors{
+			Base01: "#000000",
+		},
+	}
+	m := New(WithTheme(theme))
+
+	// Set a narrow width to force wrapping
+	m.Update(tea.WindowSizeMsg{Width: 40, Height: 50})
+
+	longMessage := "This is a very long message that should be wrapped to multiple lines when the width is limited"
+	m.Update(agent.Message{
+		Message:   longMessage,
+		Timestamp: time.Now(),
+	})
+
+	view := stripANSI(m.View())
+	lines := regexp.MustCompile(`\n`).Split(view, -1)
+
+	// Count lines containing parts of the message
+	messageLines := 0
+	for _, line := range lines {
+		if strings.Contains(line, "This") || strings.Contains(line, "long") || strings.Contains(line, "limited") {
+			messageLines++
+		}
+	}
+
+	assert.Greater(t, messageLines, 1, "long message should be wrapped to multiple lines")
+}
+
+// TestThemeChange tests the component's response to theme changes.
+func TestThemeChange(t *testing.T) {
+	initialTheme := thememanager.Theme{
+		BaseColors: thememanager.BaseColors{
+			Base01: "#000000",
+			Base04: "#FFFFFF",
+		},
+		AccentColors: thememanager.AccentColors{
+			Accent1: "#FF0000",
+			Accent2: "#00FF00",
+		},
+	}
+
+	newTheme := thememanager.Theme{
+		BaseColors: thememanager.BaseColors{
+			Base01: "#111111",
+			Base04: "#EEEEEE",
+		},
+		AccentColors: thememanager.AccentColors{
+			Accent1: "#FF1111",
+			Accent2: "#11FF11",
+		},
+	}
+
+	// Create and setup first model
+	m1 := New(WithTheme(initialTheme))
+	m1.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
+	m1.Update(agent.Message{
+		Message:   "Test message",
+		Timestamp: time.Now(),
+	})
+
+	// Create and setup second model
+	m2 := New(WithTheme(newTheme))
+	m2.Update(tea.WindowSizeMsg{Width: 80, Height: 40})
+	m2.Update(agent.Message{
+		Message:   "Test message",
+		Timestamp: time.Now(),
+	})
+
+	// Verify container styles are different
+	assert.NotEqual(t,
+		m1.containerStyle().GetBackground(),
+		m2.containerStyle().GetBackground(),
+		"container styles should have different backgrounds",
+	)
+
+	// Verify message styles are different
+	assert.NotEqual(t,
+		m1.messageStyle().GetForeground(),
+		m2.messageStyle().GetForeground(),
+		"message styles should have different colors",
+	)
+
+	// Verify styles match their themes
+	assert.Equal(t,
+		lipgloss.Color(initialTheme.BaseColors.Base01),
+		m1.containerStyle().GetBackground(),
+		"container style should use Base01 color",
+	)
+
+	assert.Equal(t,
+		lipgloss.Color(initialTheme.BaseColors.Base04),
+		m1.messageStyle().GetForeground(),
+		"message style should use Base04 color",
+	)
+
+	// Verify content is identical
+	stripped1 := stripANSI(m1.View())
+	stripped2 := stripANSI(m2.View())
+	assert.Equal(t, stripped1, stripped2, "content should be same after stripping ANSI codes")
+}
+
+// TestConcurrentAccess tests message handling with multiple updates.
+func TestConcurrentAccess(t *testing.T) {
+	theme := thememanager.Theme{
+		BaseColors: thememanager.BaseColors{
+			Base01: "#000000",
+			Base02: "#111111",
+			Base03: "#222222",
+			Base04: "#333333",
+		},
+		AccentColors: thememanager.AccentColors{
+			Accent1: "#FF0000",
+			Accent2: "#00FF00",
+		},
+	}
+
+	m := New(WithTheme(theme))
+
+	// Initialize viewport with window size
+	m, _ = m.Update(tea.WindowSizeMsg{Width: 100, Height: 50})
+
+	// Add messages sequentially with fixed timestamp
+	timestamp := time.Date(2024, 1, 1, 10, 43, 56, 0, time.UTC)
+	for i := 0; i < 10; i++ {
+		msg := agent.Message{
+			Message:   fmt.Sprintf("Message %d", i),
+			Timestamp: timestamp,
+		}
+		m, _ = m.Update(msg)
+	}
+
+	// Verify that all messages are in the model's messages slice
+	assert.Equal(t, 10, len(m.messages), "should have 10 messages")
+	for i := 0; i < 10; i++ {
+		expectedMessage := fmt.Sprintf("Message %d", i)
+		assert.Equal(t, expectedMessage, m.messages[i].Message, "message %d should match", i)
+	}
+
+	// Verify that the viewport content is not empty
+	content := stripANSI(m.viewport.View())
+	assert.NotEmpty(t, content, "viewport content should not be empty")
 }
