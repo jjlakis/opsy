@@ -100,6 +100,8 @@ const (
 	ErrToolExecutableNotFound = "tool executable not found"
 	// ErrToolMarshalingInputs is the error returned when a tool inputs cannot be marshaled.
 	ErrToolMarshalingInputs = "tool inputs cannot be marshaled"
+	// ErrToolInvalidSystemPrompt is the error returned when a tool has an invalid system prompt.
+	ErrToolInvalidSystemPrompt = "invalid system prompt"
 
 	// inputTask is the input parameter for the task to complete.
 	inputTask = "task"
@@ -310,6 +312,16 @@ func ValidateDefinition(def *Definition) error {
 		if _, err := exec.LookPath(def.Executable); err != nil {
 			return fmt.Errorf("%s: %q", ErrToolExecutableNotFound, def.Executable)
 		}
+	}
+
+	// Validate that the system prompt can be rendered
+	_, err := assets.RenderToolSystemPrompt(&assets.ToolSystemPromptData{
+		Name:       def.DisplayName,
+		Executable: def.Executable,
+		Rules:      def.Rules,
+	})
+	if err != nil {
+		return fmt.Errorf("%s: %v", ErrToolInvalidSystemPrompt, err)
 	}
 
 	return nil
