@@ -35,8 +35,10 @@ Available options include:
 Tasks are executed using the Run method:
 
 	outputs, err := agent.Run(&tool.RunOptions{
-		Task:  "Clone the repository",
-		Tools: toolManager.GetTools(),
+		Task:   "Clone the repository",
+		Tools:  toolManager.GetTools(),
+		Prompt: customPrompt, // Optional: Override default system prompt
+		Caller: "git",       // Optional: Tool identifier for messages
 	}, ctx)
 
 The agent will:
@@ -44,6 +46,9 @@ The agent will:
 2. Use the Anthropic API to determine which tools to use
 3. Execute the selected tools with appropriate parameters
 4. Return the combined output from all tool executions
+
+The agent supports customizing the system prompt through RunOptions.Prompt,
+which allows overriding the default behavior when needed.
 
 # Communication
 
@@ -76,6 +81,7 @@ Tools are converted to a format compatible with the Anthropic API:
   - InputSchema: JSON Schema defining valid inputs
 
 The agent ensures proper conversion and validation of tools before use.
+By default, parallel tool use is disabled to ensure deterministic execution.
 
 # Error Handling
 
@@ -83,9 +89,20 @@ The package defines several error types:
 
   - ErrNoRunOptions: No options provided for Run
   - ErrNoTaskProvided: No task specified in options
-  - ErrNoTools: No tools available for execution
 
-Errors are logged and can be handled by the caller.
+All errors are properly logged with contextual information using structured logging.
+Tool execution errors are captured and reflected in the tool results.
+
+# Logging
+
+The agent uses structured logging (slog) to provide detailed execution information:
+  - Configuration details on initialization
+  - Task execution progress and tool usage
+  - Error conditions with context
+  - Tool execution results and messages
+
+Logs can be configured through the WithLogger option to capture different levels
+of detail as needed.
 
 # Thread Safety
 
