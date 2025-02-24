@@ -13,12 +13,19 @@ import (
 )
 
 // Model represents the commands pane component.
+// It maintains the state of the commands list and viewport,
+// handling command history and display formatting.
 type Model struct {
-	theme     thememanager.Theme
-	maxWidth  int
+	// theme defines the color scheme for the component
+	theme thememanager.Theme
+	// maxWidth is the maximum width of the component
+	maxWidth int
+	// maxHeight is the maximum height of the component
 	maxHeight int
-	viewport  viewport.Model
-	commands  []tool.Command
+	// viewport handles scrollable content display
+	viewport viewport.Model
+	// commands stores the history of executed commands
+	commands []tool.Command
 }
 
 // Option is a function that modifies the Model.
@@ -140,15 +147,30 @@ func (m *Model) renderCommands() {
 		timestamp := m.timestampStyle().Render(fmt.Sprintf("[%s]", cmd.StartedAt.Format("15:04:05")))
 		workdir := m.workdirStyle().Render(cmd.WorkingDirectory)
 
+		// Calculate available width for command
 		commandWidth := m.maxWidth - lipgloss.Width(timestamp) - lipgloss.Width(workdir)
-		command := m.commandStyle().Width(commandWidth).Render(cmd.Command)
 
-		if lipgloss.Width(cmd.Command) >= commandWidth {
-			command = m.commandStyle().Width(m.maxWidth).Render(wrap.String(cmd.Command, commandWidth))
+		// Always wrap the command to ensure consistent formatting
+		wrappedCommand := wrap.String(cmd.Command, commandWidth)
+
+		// Split wrapped command into lines
+		commandLines := strings.Split(wrappedCommand, "\n")
+
+		// Render first line with timestamp and workdir
+		firstLine := m.commandStyle().Width(commandWidth).Render(commandLines[0])
+		content.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, firstLine))
+		content.WriteString("\n")
+
+		// Render remaining lines with proper indentation
+		if len(commandLines) > 1 {
+			indent := strings.Repeat(" ", lipgloss.Width(timestamp)+lipgloss.Width(workdir))
+			for _, line := range commandLines[1:] {
+				content.WriteString(indent)
+				content.WriteString(m.commandStyle().Width(commandWidth).Render(line))
+				content.WriteString("\n")
+			}
 		}
-
-		content.WriteString(fmt.Sprintf("%s%s%s", timestamp, workdir, command))
-		content.WriteString("\n\n")
+		content.WriteString("\n")
 	}
 
 	// Wrap all content in a background-styled container
