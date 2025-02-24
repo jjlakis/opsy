@@ -23,3 +23,5 @@ inputs:
     examples:
       - "github.com"
       - "github.enterprise.company.com"
+rules:
+  - When creating a Pull Request, always use conventional message for the title and add detailed description formatted as markdown.
