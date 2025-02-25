@@ -260,7 +260,7 @@ func (c *Config) setDefaults() {
 	viper.SetDefault("ui.theme", "default")
 	viper.SetDefault("logging.path", filepath.Join(c.homePath, dirConfig, "log.log"))
 	viper.SetDefault("logging.level", "info")
-	viper.SetDefault("anthropic.model", "claude-3-5-sonnet-latest")
+	viper.SetDefault("anthropic.model", "claude-3-7-sonnet-latest")
 	viper.SetDefault("anthropic.temperature", 0.7)
 	viper.SetDefault("anthropic.max_tokens", 1024)
 	viper.SetDefault("tools.timeout", 120)

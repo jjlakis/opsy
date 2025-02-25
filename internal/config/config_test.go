@@ -63,7 +63,7 @@ func TestNewConfigManager(t *testing.T) {
 		// Verify default values are set in viper
 		assert.Equal(t, filepath.Join(tempDir, ".sredo", "log.log"), viper.GetString("logging.path"))
 		assert.Equal(t, "info", viper.GetString("logging.level"))
-		assert.Equal(t, "claude-3-5-sonnet-latest", viper.GetString("anthropic.model"))
+		assert.Equal(t, "claude-3-7-sonnet-latest", viper.GetString("anthropic.model"))
 		assert.Equal(t, 0.7, viper.GetFloat64("anthropic.temperature"))
 		assert.Equal(t, int64(1024), viper.GetInt64("anthropic.max_tokens"))
 		assert.Equal(t, int64(120), viper.GetInt64("tools.timeout"))
@@ -101,7 +101,7 @@ func TestLoadConfig_DefaultValues(t *testing.T) {
 
 	config := manager.GetConfig()
 	assert.Equal(t, "info", config.Logging.Level)
-	assert.Equal(t, "claude-3-5-sonnet-latest", config.Anthropic.Model)
+	assert.Equal(t, "claude-3-7-sonnet-latest", config.Anthropic.Model)
 	assert.Equal(t, 0.7, config.Anthropic.Temperature)
 	assert.Equal(t, int64(1024), config.Anthropic.MaxTokens)
 	assert.Equal(t, int64(120), config.Tools.Timeout)

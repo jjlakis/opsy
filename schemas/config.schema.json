@@ -67,7 +67,7 @@
         "model": {
           "type": "string",
           "description": "Model to use for the Anthropic API",
-          "default": "claude-3-5-sonnet-latest"
+          "default": "claude-3-7-sonnet-latest"
         },
         "temperature": {
           "type": "number",
