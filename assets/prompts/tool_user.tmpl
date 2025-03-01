@@ -1,5 +1,7 @@
-Generate and execute shell command to complete the following task: {{.Task}}.
-The command should be executed in the following directory: `{{.WorkingDirectory}}`.
+{{.Task}}.
+
+Current working directory: `{{.WorkingDirectory}}`.
+
 Additional parameters for completing the task:
 
 {{range $key, $value := .Params}}
