@@ -3,8 +3,26 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - '.vscode/**'
+      - '.github/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - 'CODEOWNERS'
+      - 'README.md'
+      - '.editorconfig'
+      - 'LICENSE'
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - '.vscode/**'
+      - '.github/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - 'CODEOWNERS'
+      - 'README.md'
+      - '.editorconfig'
+      - 'LICENSE'
 
 concurrency:
   group: CI-${{ github.ref }}
