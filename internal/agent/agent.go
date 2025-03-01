@@ -266,7 +266,7 @@ func (a *Agent) Run(opts *tool.RunOptions, ctx context.Context) ([]tool.Output, 
 }
 
 // convertTools converts the tools to the format required by the Anthropic SDK.
-func convertTools(tools map[string]tool.Tool) (anthropicTools []anthropic.ToolParam) {
+func convertTools(tools map[string]tool.Tool) (anthropicTools []anthropic.ToolUnionUnionParam) {
 	for _, t := range tools {
 		anthropicTools = append(anthropicTools, anthropic.ToolParam{
 			Name:        anthropic.F(t.GetName()),

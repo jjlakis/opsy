@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/datolabs-io/opsy/internal/config"
 	"github.com/datolabs-io/opsy/internal/tool"
 	"github.com/invopop/jsonschema"
@@ -97,10 +98,12 @@ func TestConvertTools(t *testing.T) {
 		anthropicTools := convertTools(tools)
 		require.Len(t, anthropicTools, 1)
 
-		toolParam := anthropicTools[0]
+		toolUnionParam := anthropicTools[0]
+		toolParam, ok := toolUnionParam.(anthropic.ToolParam)
+		require.True(t, ok, "Expected ToolParam type")
 		assert.Equal(t, "test", toolParam.Name.Value)
 		assert.Equal(t, "A test tool", toolParam.Description.Value)
-		assert.NotNil(t, toolParam.InputSchema.Value)
+		assert.NotNil(t, toolParam.InputSchema)
 	})
 
 	t.Run("converts multiple tools", func(t *testing.T) {
@@ -134,16 +137,20 @@ func TestConvertTools(t *testing.T) {
 		foundTool1 := false
 		foundTool2 := false
 
-		for _, tool := range anthropicTools {
-			switch tool.Name.Value {
-			case "tool1":
+		for _, toolUnion := range anthropicTools {
+			toolUnionParam := toolUnion
+			tl, ok := toolUnionParam.(anthropic.ToolParam)
+			require.True(t, ok, "Expected ToolParam type")
+
+			name := tl.Name.Value
+			if name == "tool1" {
 				foundTool1 = true
-				assert.Equal(t, "First test tool", tool.Description.Value)
-				assert.NotNil(t, tool.InputSchema.Value)
-			case "tool2":
+				assert.Equal(t, "First test tool", tl.Description.Value)
+				assert.NotNil(t, tl.InputSchema)
+			} else if name == "tool2" {
 				foundTool2 = true
-				assert.Equal(t, "Second test tool", tool.Description.Value)
-				assert.NotNil(t, tool.InputSchema.Value)
+				assert.Equal(t, "Second test tool", tl.Description.Value)
+				assert.NotNil(t, tl.InputSchema)
 			}
 		}
 
