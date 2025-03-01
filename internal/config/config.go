@@ -265,5 +265,5 @@ func (c *Config) setDefaults() {
 	viper.SetDefault("anthropic.max_tokens", 1024)
 	viper.SetDefault("tools.timeout", 120)
 	viper.SetDefault("tools.exec.timeout", 0)
-	viper.SetDefault("tools.exec.shell", "/bin/bash")
+	viper.SetDefault("tools.exec.shell", "/bin/sh")
 }
