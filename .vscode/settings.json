@@ -25,6 +25,7 @@
     "covermode",
     "dylib",
     "goarch",
+    "gomod",
     "gopkg",
     "goreleaser",
     "invopop",
