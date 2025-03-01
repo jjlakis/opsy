@@ -55,3 +55,10 @@ release:
     ---
 
     Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
+
+brews:
+  - commit_author:
+      name: datolabs-bot
+      email: github-bot@datolabs.io
+    commit_msg_template: "chore(brew): formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: brew
