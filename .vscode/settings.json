@@ -24,6 +24,7 @@
     "commandspane",
     "covermode",
     "dylib",
+    "goarch",
     "gopkg",
     "goreleaser",
     "invopop",
