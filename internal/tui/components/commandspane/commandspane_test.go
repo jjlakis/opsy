@@ -163,19 +163,21 @@ func TestCommandWrapping(t *testing.T) {
 	// 3. Line with working directory
 	assert.GreaterOrEqual(t, nonEmptyLines, 3, "command should wrap to at least 3 lines")
 
-	// Verify parts of the command are present, accounting for word wrapping
-	assert.Contains(t, view, "ls -la /very/")
-	assert.Contains(t, view, "long/path/tha")
-	assert.Contains(t, view, "t/will/defini")
-	assert.Contains(t, view, "tely/wrap/acr")
-	assert.Contains(t, view, "oss/multiple/")
-	assert.Contains(t, view, "lines/in/the/")
-	assert.Contains(t, view, "terminal/outp")
-	assert.Contains(t, view, "ut/when/rende")
-	assert.Contains(t, view, "red")
+	// Strip ANSI codes for easier testing
+	plainView := stripANSI(view)
+
+	// Verify the command is present and wrapped
+	assert.Contains(t, plainView, "ls -la /very/l")
+	assert.Contains(t, plainView, "ong/path/that/")
+	assert.Contains(t, plainView, "will/definitel")
+	assert.Contains(t, plainView, "y/wrap/across/")
+	assert.Contains(t, plainView, "multiple/lines")
+	assert.Contains(t, plainView, "/in/the/termin")
+	assert.Contains(t, plainView, "al/output/when")
+	assert.Contains(t, plainView, "/rendered")
 
 	// Verify working directory is present
-	assert.Contains(t, view, cmd.WorkingDirectory)
+	assert.Contains(t, plainView, cmd.WorkingDirectory)
 }
 
 // TestMultipleCommands tests rendering of multiple commands.
