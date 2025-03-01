@@ -12,5 +12,6 @@ inputs:
       - "/path/to/repo"
     optional: false
 rules:
-  - 'Never commit to the main or master branch directly.'
   - 'Use conventional commit messages in a format of `type(scope): description`.'
+  - 'If you clone an empty repository, make sure to init it.'
+  - 'Never commit to the main or master branch directly, unless you just init the repository.'

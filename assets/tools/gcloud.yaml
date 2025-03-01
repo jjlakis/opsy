@@ -28,3 +28,5 @@ inputs:
       - "us-east1-b"
       - "europe-west1-c"
       - "asia-east1-a"
+rules:
+  - 'If the user explicitly specified the project, region or zone, make sure to pass it to the `gcloud` command'

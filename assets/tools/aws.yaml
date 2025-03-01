@@ -20,3 +20,5 @@ inputs:
       - "default"
       - "production"
       - "development"
+rules:
+  - 'Unless the user explicitly specified the region or account, use the currently active profile'

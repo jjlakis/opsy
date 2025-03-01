@@ -12,3 +12,5 @@ inputs:
       - "monitoring"
       - "application"
       - "database"
+rules:
+  - 'If the user explicitly specified the namespace, make sure to pass it to the `helm` command'

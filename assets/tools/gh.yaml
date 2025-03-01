@@ -24,4 +24,6 @@ inputs:
       - "github.com"
       - "github.enterprise.company.com"
 rules:
-  - When creating a Pull Request, always use conventional message for the title and add detailed description formatted as markdown.
+  - 'When creating a Pull Request, always use conventional message for the title  in a format of `type(scope): description`.'
+  - 'When creating a Pull Request, always add detailed description formatted as markdown.'
+  - 'Unless user explicitly expressed otherwise, when creating a new repository, create it as private.'
