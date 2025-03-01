@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/datolabs-io/sredo/internal/config"
+	"github.com/datolabs-io/opsy/internal/config"
 	"github.com/invopop/jsonschema"
 )
 

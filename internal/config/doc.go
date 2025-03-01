@@ -1,4 +1,4 @@
-// Package config provides configuration management for the sredo CLI application.
+// Package config provides configuration management for the opsy CLI application.
 //
 // The package handles:
 //   - Loading configuration from YAML files
@@ -27,18 +27,18 @@
 //
 // Environment Variables:
 //   - ANTHROPIC_API_KEY: API key for Anthropic
-//   - SREDO_UI_THEME: UI theme name
-//   - SREDO_LOGGING_LEVEL: Log level (debug, info, warn, error)
-//   - SREDO_ANTHROPIC_MODEL: Model name
-//   - SREDO_ANTHROPIC_TEMPERATURE: Temperature value
-//   - SREDO_ANTHROPIC_MAX_TOKENS: Maximum tokens for completion
-//   - SREDO_TOOLS_TIMEOUT: Global timeout for tools in seconds
-//   - SREDO_TOOLS_EXEC_TIMEOUT: Timeout for exec tool in seconds
-//   - SREDO_TOOLS_EXEC_SHELL: Shell to use for command execution
+//   - OPSY_UI_THEME: UI theme name
+//   - OPSY_LOGGING_LEVEL: Log level (debug, info, warn, error)
+//   - OPSY_ANTHROPIC_MODEL: Model name
+//   - OPSY_ANTHROPIC_TEMPERATURE: Temperature value
+//   - OPSY_ANTHROPIC_MAX_TOKENS: Maximum tokens for completion
+//   - OPSY_TOOLS_TIMEOUT: Global timeout for tools in seconds
+//   - OPSY_TOOLS_EXEC_TIMEOUT: Timeout for exec tool in seconds
+//   - OPSY_TOOLS_EXEC_SHELL: Shell to use for command execution
 //
 // Directory Structure:
 //
-//	~/.sredo/
+//	~/.opsy/
 //	├── config.yaml  // Configuration file
 //	├── log.log     // Default log file
 //	├── cache/      // Cache directory for temporary files

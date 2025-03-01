@@ -1,4 +1,4 @@
-// Package tui provides the terminal user interface for the Sredo application.
+// Package tui provides the terminal user interface for the Opsy application.
 //
 // The TUI is built using the Bubble Tea framework and consists of four main components:
 //   - Header: Displays the current task and application state

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "title": "Configuration Schema",
-  "description": "Schema for the sredo CLI configuration",
+  "description": "Schema for the opsy CLI configuration",
   "required": [
     "ui",
     "logging",
@@ -35,7 +35,7 @@
         "path": {
           "type": "string",
           "description": "Path to the log file",
-          "default": "~/.sredo/log.log"
+          "default": "~/.opsy/log.log"
         },
         "level": {
           "type": "string",

@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/datolabs-io/sredo/assets"
-	"github.com/datolabs-io/sredo/internal/agent"
-	"github.com/datolabs-io/sredo/internal/config"
-	"github.com/datolabs-io/sredo/internal/tool"
+	"github.com/datolabs-io/opsy/assets"
+	"github.com/datolabs-io/opsy/internal/agent"
+	"github.com/datolabs-io/opsy/internal/config"
+	"github.com/datolabs-io/opsy/internal/tool"
 	"gopkg.in/yaml.v3"
 )
 

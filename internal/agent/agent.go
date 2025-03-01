@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/datolabs-io/sredo/assets"
-	"github.com/datolabs-io/sredo/internal/config"
-	"github.com/datolabs-io/sredo/internal/tool"
+	"github.com/datolabs-io/opsy/assets"
+	"github.com/datolabs-io/opsy/internal/config"
+	"github.com/datolabs-io/opsy/internal/tool"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -66,7 +66,7 @@ type Option func(*Agent)
 
 const (
 	// Name is the name of the agent.
-	Name = "Sredo"
+	Name = "Opsy"
 )
 
 // New creates a new Agent.

@@ -5,14 +5,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datolabs-io/sredo/internal/agent"
-	"github.com/datolabs-io/sredo/internal/config"
-	"github.com/datolabs-io/sredo/internal/thememanager"
-	"github.com/datolabs-io/sredo/internal/tool"
-	"github.com/datolabs-io/sredo/internal/tui/components/commandspane"
-	"github.com/datolabs-io/sredo/internal/tui/components/footer"
-	"github.com/datolabs-io/sredo/internal/tui/components/header"
-	"github.com/datolabs-io/sredo/internal/tui/components/messagespane"
+	"github.com/datolabs-io/opsy/internal/agent"
+	"github.com/datolabs-io/opsy/internal/config"
+	"github.com/datolabs-io/opsy/internal/thememanager"
+	"github.com/datolabs-io/opsy/internal/tool"
+	"github.com/datolabs-io/opsy/internal/tui/components/commandspane"
+	"github.com/datolabs-io/opsy/internal/tui/components/footer"
+	"github.com/datolabs-io/opsy/internal/tui/components/header"
+	"github.com/datolabs-io/opsy/internal/tui/components/messagespane"
 )
 
 // model is the main model for the TUI.
@@ -60,7 +60,7 @@ func New(opts ...Option) *model {
 
 // Init initializes the TUI.
 func (m *model) Init() tea.Cmd {
-	return tea.SetWindowTitle("Sredo - Your AI-Powered SRE Colleague")
+	return tea.SetWindowTitle("Opsy - Your AI-Powered SRE Colleague")
 }
 
 // Update handles all messages and updates the TUI

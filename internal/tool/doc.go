@@ -1,5 +1,5 @@
 /*
-Package tool provides functionality for defining and executing tools within the sredo application.
+Package tool provides functionality for defining and executing tools within the opsy application.
 
 A tool is a unit of functionality that can be executed by the agent to perform specific tasks.
 Each tool has a definition that describes its capabilities, inputs, and behavior.

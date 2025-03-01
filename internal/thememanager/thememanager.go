@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/datolabs-io/sredo/assets"
+	"github.com/datolabs-io/opsy/assets"
 	"gopkg.in/yaml.v3"
 )
 

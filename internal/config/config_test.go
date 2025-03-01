@@ -12,20 +12,20 @@ import (
 
 func setupTestEnv(t *testing.T) (string, func()) {
 	// Create a temporary directory for test config
-	tempDir, err := os.MkdirTemp("", "sredo-test-*")
+	tempDir, err := os.MkdirTemp("", "opsy-test-*")
 	require.NoError(t, err)
 
 	// Save original environment variables
 	origHome := os.Getenv("HOME")
 	origAPIKey := os.Getenv("ANTHROPIC_API_KEY")
-	origLogLevel := os.Getenv("SREDO_LOGGING_LEVEL")
-	origExecShell := os.Getenv("SREDO_TOOLS_EXEC_SHELL")
+	origLogLevel := os.Getenv("OPSY_LOGGING_LEVEL")
+	origExecShell := os.Getenv("OPSY_TOOLS_EXEC_SHELL")
 
 	// Set up test environment
 	os.Setenv("HOME", tempDir)
-	os.Unsetenv("ANTHROPIC_API_KEY")      // Ensure API key is not set
-	os.Unsetenv("SREDO_LOGGING_LEVEL")    // Ensure log level is not set
-	os.Unsetenv("SREDO_TOOLS_EXEC_SHELL") // Ensure shell is not set
+	os.Unsetenv("ANTHROPIC_API_KEY")     // Ensure API key is not set
+	os.Unsetenv("OPSY_LOGGING_LEVEL")    // Ensure log level is not set
+	os.Unsetenv("OPSY_TOOLS_EXEC_SHELL") // Ensure shell is not set
 
 	// Return cleanup function
 	cleanup := func() {
@@ -33,14 +33,14 @@ func setupTestEnv(t *testing.T) (string, func()) {
 		os.Setenv("HOME", origHome)
 		os.Setenv("ANTHROPIC_API_KEY", origAPIKey)
 		if origLogLevel != "" {
-			os.Setenv("SREDO_LOGGING_LEVEL", origLogLevel)
+			os.Setenv("OPSY_LOGGING_LEVEL", origLogLevel)
 		} else {
-			os.Unsetenv("SREDO_LOGGING_LEVEL")
+			os.Unsetenv("OPSY_LOGGING_LEVEL")
 		}
 		if origExecShell != "" {
-			os.Setenv("SREDO_TOOLS_EXEC_SHELL", origExecShell)
+			os.Setenv("OPSY_TOOLS_EXEC_SHELL", origExecShell)
 		} else {
-			os.Unsetenv("SREDO_TOOLS_EXEC_SHELL")
+			os.Unsetenv("OPSY_TOOLS_EXEC_SHELL")
 		}
 		viper.Reset()
 	}
@@ -61,7 +61,7 @@ func TestNewConfigManager(t *testing.T) {
 		assert.Equal(t, tempDir, manager.homePath)
 
 		// Verify default values are set in viper
-		assert.Equal(t, filepath.Join(tempDir, ".sredo", "log.log"), viper.GetString("logging.path"))
+		assert.Equal(t, filepath.Join(tempDir, ".opsy", "log.log"), viper.GetString("logging.path"))
 		assert.Equal(t, "info", viper.GetString("logging.level"))
 		assert.Equal(t, "claude-3-7-sonnet-latest", viper.GetString("anthropic.model"))
 		assert.Equal(t, 0.7, viper.GetFloat64("anthropic.temperature"))
@@ -73,7 +73,7 @@ func TestNewConfigManager(t *testing.T) {
 
 	t.Run("binds environment variables", func(t *testing.T) {
 		os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
-		os.Setenv("SREDO_LOGGING_LEVEL", "debug")
+		os.Setenv("OPSY_LOGGING_LEVEL", "debug")
 
 		manager := New()
 		assert.NotNil(t, manager)
@@ -118,7 +118,7 @@ func TestLoadConfig_CustomValues(t *testing.T) {
 	defer cleanup()
 
 	// Create custom config file
-	configDir := filepath.Join(tempDir, ".sredo")
+	configDir := filepath.Join(tempDir, ".opsy")
 	require.NoError(t, os.MkdirAll(configDir, 0755))
 
 	// Read test data
@@ -226,7 +226,7 @@ tools:
 			defer cleanup()
 
 			// Create config file with test case content
-			configDir := filepath.Join(tempDir, ".sredo")
+			configDir := filepath.Join(tempDir, ".opsy")
 			require.NoError(t, os.MkdirAll(configDir, 0755))
 			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
 
@@ -248,13 +248,13 @@ func TestLoadConfig_EnvironmentVariables(t *testing.T) {
 
 	// Set environment variables
 	os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
-	os.Setenv("SREDO_LOGGING_LEVEL", "debug")
-	os.Setenv("SREDO_ANTHROPIC_MODEL", "claude-3-opus")
-	os.Setenv("SREDO_ANTHROPIC_TEMPERATURE", "0.8")
+	os.Setenv("OPSY_LOGGING_LEVEL", "debug")
+	os.Setenv("OPSY_ANTHROPIC_MODEL", "claude-3-opus")
+	os.Setenv("OPSY_ANTHROPIC_TEMPERATURE", "0.8")
 	defer func() {
-		os.Unsetenv("SREDO_LOGGING_LEVEL")
-		os.Unsetenv("SREDO_ANTHROPIC_MODEL")
-		os.Unsetenv("SREDO_ANTHROPIC_TEMPERATURE")
+		os.Unsetenv("OPSY_LOGGING_LEVEL")
+		os.Unsetenv("OPSY_ANTHROPIC_MODEL")
+		os.Unsetenv("OPSY_ANTHROPIC_TEMPERATURE")
 	}()
 
 	manager := New()
@@ -343,8 +343,8 @@ func TestLoadConfig_DirectoryCreation(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check if directories were created
-		configDir := filepath.Join(tempDir, ".sredo")
-		cacheDir := filepath.Join(tempDir, ".sredo/cache")
+		configDir := filepath.Join(tempDir, ".opsy")
+		cacheDir := filepath.Join(tempDir, ".opsy/cache")
 
 		assert.DirExists(t, configDir)
 		assert.DirExists(t, cacheDir)
@@ -355,7 +355,7 @@ func TestLoadConfig_DirectoryCreation(t *testing.T) {
 		defer cleanup()
 
 		// Create a file where the config directory should be
-		err := os.WriteFile(filepath.Join(tempDir, ".sredo"), []byte("test"), 0644)
+		err := os.WriteFile(filepath.Join(tempDir, ".opsy"), []byte("test"), 0644)
 		require.NoError(t, err)
 
 		manager := New()
@@ -369,8 +369,8 @@ func TestLoadConfig_DirectoryCreation(t *testing.T) {
 		defer cleanup()
 
 		// Create config dir but make cache path a file
-		require.NoError(t, os.MkdirAll(filepath.Join(tempDir, ".sredo"), 0755))
-		err := os.WriteFile(filepath.Join(tempDir, ".sredo/cache"), []byte("test"), 0644)
+		require.NoError(t, os.MkdirAll(filepath.Join(tempDir, ".opsy"), 0755))
+		err := os.WriteFile(filepath.Join(tempDir, ".opsy/cache"), []byte("test"), 0644)
 		require.NoError(t, err)
 
 		manager := New()
@@ -557,7 +557,7 @@ func TestLoadConfig_ReadErrors(t *testing.T) {
 		os.Setenv("ANTHROPIC_API_KEY", "test-api-key")
 
 		// Create an invalid YAML file
-		configDir := filepath.Join(tempDir, ".sredo")
+		configDir := filepath.Join(tempDir, ".opsy")
 		require.NoError(t, os.MkdirAll(configDir, 0755))
 		require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte("invalid: : : yaml"), 0644))
 
@@ -627,14 +627,14 @@ ui:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create config file
-			configDir := filepath.Join(tempDir, ".sredo")
+			configDir := filepath.Join(tempDir, ".opsy")
 			require.NoError(t, os.MkdirAll(configDir, 0755))
 			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
 
 			// Set environment variable if specified
 			if tt.envTheme != "" {
-				os.Setenv("SREDO_UI_THEME", tt.envTheme)
-				defer os.Unsetenv("SREDO_UI_THEME")
+				os.Setenv("OPSY_UI_THEME", tt.envTheme)
+				defer os.Unsetenv("OPSY_UI_THEME")
 			}
 
 			manager := New()
@@ -667,7 +667,7 @@ func TestLoadConfig_ConfigFilePermissions(t *testing.T) {
 	defer cleanup()
 
 	// Create config directory with restricted permissions
-	configDir := filepath.Join(tempDir, ".sredo")
+	configDir := filepath.Join(tempDir, ".opsy")
 	require.NoError(t, os.MkdirAll(configDir, 0000))
 	//nolint:errcheck
 	defer os.Chmod(configDir, 0755) // Restore permissions for cleanup
@@ -738,7 +738,7 @@ anthropic:
 			tempDir, cleanup := setupTestEnv(t)
 			defer cleanup()
 
-			configDir := filepath.Join(tempDir, ".sredo")
+			configDir := filepath.Join(tempDir, ".opsy")
 			require.NoError(t, os.MkdirAll(configDir, 0755))
 			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(tt.config), 0644))
 
@@ -835,22 +835,22 @@ tools:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create config file
-			configDir := filepath.Join(tempDir, ".sredo")
+			configDir := filepath.Join(tempDir, ".opsy")
 			require.NoError(t, os.MkdirAll(configDir, 0755))
 			require.NoError(t, os.WriteFile(filepath.Join(configDir, "config.yaml"), tt.configData, 0644))
 
 			// Set environment variables if specified
 			if tt.envTimeout != "" {
-				os.Setenv("SREDO_TOOLS_TIMEOUT", tt.envTimeout)
-				defer os.Unsetenv("SREDO_TOOLS_TIMEOUT")
+				os.Setenv("OPSY_TOOLS_TIMEOUT", tt.envTimeout)
+				defer os.Unsetenv("OPSY_TOOLS_TIMEOUT")
 			}
 			if tt.envExecTimeout != "" {
-				os.Setenv("SREDO_TOOLS_EXEC_TIMEOUT", tt.envExecTimeout)
-				defer os.Unsetenv("SREDO_TOOLS_EXEC_TIMEOUT")
+				os.Setenv("OPSY_TOOLS_EXEC_TIMEOUT", tt.envExecTimeout)
+				defer os.Unsetenv("OPSY_TOOLS_EXEC_TIMEOUT")
 			}
 			if tt.envExecShell != "" {
-				os.Setenv("SREDO_TOOLS_EXEC_SHELL", tt.envExecShell)
-				defer os.Unsetenv("SREDO_TOOLS_EXEC_SHELL")
+				os.Setenv("OPSY_TOOLS_EXEC_SHELL", tt.envExecShell)
+				defer os.Unsetenv("OPSY_TOOLS_EXEC_SHELL")
 			}
 
 			manager := New()

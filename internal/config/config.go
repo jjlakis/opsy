@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// Configuration is the configuration for the sredo CLI.
+// Configuration is the configuration for the opsy CLI.
 type Configuration struct {
 	// UI is the configuration for the UI.
 	UI UIConfiguration `yaml:"ui"`
@@ -76,16 +76,16 @@ type Configurer interface {
 	GetLogger() (*slog.Logger, error)
 }
 
-// ConfigManager is the configuration manager for the sredo CLI.
+// ConfigManager is the configuration manager for the opsy CLI.
 type Config struct {
 	configuration Configuration
 	homePath      string
 }
 
 const (
-	dirConfig  = ".sredo"
-	dirCache   = ".sredo/cache"
-	envPrefix  = "SREDO"
+	dirConfig  = ".opsy"
+	dirCache   = ".opsy/cache"
+	envPrefix  = "OPSY"
 	configFile = "config"
 	configType = "yaml"
 )

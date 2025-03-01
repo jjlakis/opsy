@@ -9,8 +9,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datolabs-io/sredo/internal/agent"
-	"github.com/datolabs-io/sredo/internal/thememanager"
+	"github.com/datolabs-io/opsy/internal/agent"
+	"github.com/datolabs-io/opsy/internal/thememanager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,8 +121,8 @@ func TestView(t *testing.T) {
 	// Test view with messages
 	view = stripANSI(m.View())
 	assert.Contains(t, view, "Messages")
-	assert.Contains(t, view, "Sredo:")
-	assert.Contains(t, view, "Sredo->Git:")
+	assert.Contains(t, view, "Opsy:")
+	assert.Contains(t, view, "Opsy->Git:")
 	assert.Contains(t, view, "Hello")
 	assert.Contains(t, view, "Running git command")
 }

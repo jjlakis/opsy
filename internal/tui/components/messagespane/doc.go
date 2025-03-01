@@ -20,7 +20,7 @@
 //
 // Each message includes:
 //   - Timestamp in [HH:MM:SS] format
-//   - Source indicator ("Sredo" for agent, "Sredo->Tool" for tool messages)
+//   - Source indicator ("Opsy" for agent, "Opsy->Tool" for tool messages)
 //   - Message content with proper wrapping and formatting
 //
 // # Styling

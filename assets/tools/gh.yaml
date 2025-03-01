@@ -7,14 +7,14 @@ inputs:
     type: string
     description: The GitHub repository owner (user or organization)
     examples:
-      - "sredo"
+      - "opsy"
       - "kubernetes"
   repository:
     type: string
     description: The GitHub repository name. Will generate a random name if not provided
     optional: true
     examples:
-      - "sredo"
+      - "opsy"
       - "kubernetes"
   host:
     type: string

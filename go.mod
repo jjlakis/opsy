@@ -1,4 +1,4 @@
-module github.com/datolabs-io/sredo
+module github.com/datolabs-io/opsy
 
 go 1.24.0
 

@@ -8,12 +8,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/datolabs-io/sredo/internal/agent"
-	"github.com/datolabs-io/sredo/internal/config"
-	"github.com/datolabs-io/sredo/internal/thememanager"
-	"github.com/datolabs-io/sredo/internal/tool"
-	"github.com/datolabs-io/sredo/internal/toolmanager"
-	"github.com/datolabs-io/sredo/internal/tui"
+	"github.com/datolabs-io/opsy/internal/agent"
+	"github.com/datolabs-io/opsy/internal/config"
+	"github.com/datolabs-io/opsy/internal/thememanager"
+	"github.com/datolabs-io/opsy/internal/tool"
+	"github.com/datolabs-io/opsy/internal/toolmanager"
+	"github.com/datolabs-io/opsy/internal/tui"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 	ErrNoTaskProvided = "no task provided"
 )
 
-// main is the entry point for the Sredo application.
+// main is the entry point for the Opsy application.
 func main() {
 	ctx := context.Background()
 
@@ -40,7 +40,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger.With("task", task).Info("Started Sredo")
+	logger.With("task", task).Info("Started Opsy")
 
 	themeManager := thememanager.New(thememanager.WithLogger(logger))
 	if err := themeManager.LoadTheme(cfg.GetConfig().UI.Theme); err != nil {
@@ -81,10 +81,10 @@ func main() {
 	go func() {
 		if _, err := agnt.Run(&tool.RunOptions{Task: task, Tools: toolManager.GetTools()}, ctx); err != nil {
 			communication.Status <- agent.StatusError
-			logger.With("task", task).Error("Sredo finished with error", "error", err)
+			logger.With("task", task).Error("Opsy finished with error", "error", err)
 		} else {
 			communication.Status <- agent.StatusFinished
-			logger.With("task", task).Info("Sredo finished")
+			logger.With("task", task).Info("Opsy finished")
 		}
 	}()
 

@@ -7,8 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datolabs-io/sredo/internal/thememanager"
-	"github.com/datolabs-io/sredo/internal/tool"
+	"github.com/datolabs-io/opsy/internal/thememanager"
+	"github.com/datolabs-io/opsy/internal/tool"
 	"github.com/muesli/reflow/wrap"
 )
 

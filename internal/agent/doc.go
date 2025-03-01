@@ -1,5 +1,5 @@
 /*
-Package agent provides functionality for executing tasks using AI-powered tools within the sredo application.
+Package agent provides functionality for executing tasks using AI-powered tools within the opsy application.
 
 The agent acts as a bridge between the user's task requests and the available tools, using the Anthropic
 Claude API to intelligently select and execute appropriate tools based on the task requirements.

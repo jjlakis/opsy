@@ -8,8 +8,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datolabs-io/sredo/internal/thememanager"
-	"github.com/datolabs-io/sredo/internal/tool"
+	"github.com/datolabs-io/opsy/internal/thememanager"
+	"github.com/datolabs-io/opsy/internal/tool"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +68,7 @@ func TestUpdate(t *testing.T) {
 	now := time.Now()
 	testCmd := tool.Command{
 		Command:          "ls -la",
-		WorkingDirectory: "~/sredo",
+		WorkingDirectory: "~/opsy",
 		StartedAt:        now,
 	}
 	m, cmd = m.Update(testCmd)
@@ -107,14 +107,14 @@ func TestView(t *testing.T) {
 	now := time.Now()
 	m.Update(tool.Command{
 		Command:          "ls -la",
-		WorkingDirectory: "~/sredo",
+		WorkingDirectory: "~/opsy",
 		StartedAt:        now,
 	})
 
 	// Test view with command
 	view = stripANSI(m.View())
 	assert.Contains(t, view, "Commands")
-	assert.Contains(t, view, "~/sredo")
+	assert.Contains(t, view, "~/opsy")
 	assert.Contains(t, view, "ls -la")
 	assert.Contains(t, view, now.Format("15:04:05"))
 }
@@ -140,7 +140,7 @@ func TestCommandWrapping(t *testing.T) {
 	longCommand := "ls -la /very/long/path/that/will/definitely/wrap/across/multiple/lines/in/the/terminal/output/when/rendered"
 	cmd := tool.Command{
 		Command:          longCommand,
-		WorkingDirectory: "~/sredo",
+		WorkingDirectory: "~/opsy",
 		StartedAt:        time.Now(),
 	}
 	m, _ = m.Update(cmd)

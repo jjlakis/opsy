@@ -1,4 +1,4 @@
-// Package assets provides embedded static assets for the sredo application.
+// Package assets provides embedded static assets for the opsy application.
 //
 // The package uses Go's embed functionality to include various static assets
 // that are required for the application to function. These assets are compiled
@@ -16,7 +16,7 @@
 // Tools Directory (/tools):
 //   - Contains tool-specific configuration files in YAML format
 //   - Includes git.yaml which defines Git-related configurations and commands
-//   - Tools configurations define how sredo interacts with various development tools
+//   - Tools configurations define how opsy interacts with various development tools
 //   - Each tool can define its own system prompt in its configuration
 //
 // Prompts:
