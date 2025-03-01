@@ -14,3 +14,4 @@ inputs:
       - "database"
 rules:
   - 'If the user explicitly specified the namespace, make sure to pass it to the `helm` command'
+  - 'If the user provided namespace does not exist, do not try to fallback, just report the error.'

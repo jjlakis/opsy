@@ -22,3 +22,4 @@ inputs:
       - "development"
 rules:
   - 'Unless the user explicitly specified the region or account, use the currently active profile'
+  - 'If the user provided profile does not exist, do not try to fallback, just report the error.'

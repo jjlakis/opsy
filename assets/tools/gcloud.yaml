@@ -29,4 +29,5 @@ inputs:
       - "europe-west1-c"
       - "asia-east1-a"
 rules:
-  - 'If the user explicitly specified the project, region or zone, make sure to pass it to the `gcloud` command'
+  - 'If the user explicitly specified the project, region or zone, make sure to pass it to the `gcloud` command.'
+  - 'If the user provided project does not exist, do not try to fallback, just report the error.'

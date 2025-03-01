@@ -20,3 +20,6 @@ inputs:
       - "production-cluster"
       - "development-cluster"
       - "minikube"
+rules:
+  - 'If the user provided context does not exist, do not try to fallback, just report the error.'
+  - 'If the user provided namespace does not exist, do not try to fallback, just report the error.'
