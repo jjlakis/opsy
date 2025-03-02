@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/datolabs-io/opsy/assets"
 	"github.com/datolabs-io/opsy/internal/agent"
@@ -48,6 +49,7 @@ type ToolManager struct {
 	dir    string
 	tools  map[string]tool.Tool
 	agent  *agent.Agent
+	mu     sync.RWMutex
 }
 
 // Option is a function that modifies the tool manager.
@@ -117,6 +119,13 @@ func (tm *ToolManager) LoadTools() error {
 		return fmt.Errorf("%s: %v", ErrLoadingTools, err)
 	}
 
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	for k := range tm.tools {
+		delete(tm.tools, k)
+	}
+
 	// Exec tool is a special tool which we always statically load.
 	tm.tools[tool.ExecToolName] = tool.NewExecTool(tm.logger, &tm.cfg.Tools)
 
@@ -162,11 +171,17 @@ func (tm *ToolManager) loadTool(name string, toolFile fs.DirEntry) (tool.Tool, e
 
 // GetTools returns all tools.
 func (tm *ToolManager) GetTools() map[string]tool.Tool {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
 	return tm.tools
 }
 
 // GetTool returns a tool by name.
 func (tm *ToolManager) GetTool(name string) (tool.Tool, error) {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
 	tool, ok := tm.tools[name]
 	if !ok {
 		return nil, fmt.Errorf("%s: %v", ErrToolNotFound, name)
