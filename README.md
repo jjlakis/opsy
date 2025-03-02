@@ -65,8 +65,8 @@ Ensure your Go bin directory is in your PATH.
 For macOS and Linux users with [Homebrew](https://brew.sh):
 
 ```bash
-brew tap datolabs-io/opsy
-brew install opsy
+brew tap datolabs-io/opsy https://github.com/datolabs-io/opsy
+brew install datolabs-io/opsy/opsy
 ```
 
 ### Direct Download

@@ -6,7 +6,7 @@ on:
     paths-ignore:
       - '.vscode/**'
       - '.github/**'
-      - 'brew/**'
+      - 'Formula/**'
       - '.gitattributes'
       - '.gitignore'
       - 'CODEOWNERS'
@@ -18,7 +18,7 @@ on:
     paths-ignore:
       - '.vscode/**'
       - '.github/**'
-      - 'brew/**'
+      - 'Formula/**'
       - '.gitattributes'
       - '.gitignore'
       - 'CODEOWNERS'
