@@ -11,9 +11,13 @@ Opsy uses a "tools-as-agents" architecture where each tool functions as a specia
 
 ## Demo
 
-Below you can see an example of Opsy handling the following task:
+[![Opsy Demo](https://github.com/user-attachments/assets/19e27126-baa9-432e-a014-50a18d165fde)](https://youtu.be/j5sWZDvTFtA)
+
+The demo above shows Opsy handling this complex task:
 
 > Analyze the pods in the current namespace. If there are any pods that are failing, I need you to analyze the reason it is failing. Then, create a single Jira task named `Kubernetes issues` in `OPSY` project reporting the issue. The task description must contain your analysis for on the failing pods. In addition, I want to have backups for our deployments: extract the deployment manifests and push them into a new private `backup` repo in `datolabs-io-sandbox`.
+
+Click on the screenshot to [watch the full demonstration](https://youtu.be/j5sWZDvTFtA).
 
 ## Prerequisites
 
