@@ -62,6 +62,8 @@ brews:
       email: github-bot@datolabs.io
     commit_msg_template: "chore(brew): formula update for {{ .ProjectName }} version {{ .Tag }}"
     directory: brew
+    homepage: https://github.com/datolabs-io/opsy
+    description: Your AI-Powered SRE Colleague
     repository:
       owner: datolabs-io
       name: opsy
