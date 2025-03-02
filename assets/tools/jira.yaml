@@ -3,13 +3,6 @@ display_name: Jira
 executable: jira
 description: Manages Jira issues, projects, and workflows. Handles ticket creation, updates, and project management operations through Jira's CLI interface.
 inputs:
-  url:
-    type: string
-    description: Jira instance URL. If not provided, uses the URL from configuration
-    optional: true
-    examples:
-      - "https://company.atlassian.net"
-      - "https://jira.internal.company.com"
   project:
     type: string
     description: Jira project key. If not provided, uses the default project from configuration
@@ -18,13 +11,14 @@ inputs:
       - "PROD"
       - "OPS"
       - "PLATFORM"
-  story:
+  issue:
     type: string
-    description: Jira story/ticket key. If not provided, will be generated based on the project
+    description: Jira issue key. If not provided, will be generated based on the project
     optional: true
     examples:
       - "PROD-123"
       - "OPS-456"
       - "PLATFORM-789"
 rules:
-  - "Assume the tool is already initialized so do not try to run jira init"
+  - "Assume the tool is already initialized so do not try to run `jira init`"
+  - "Always pass `--no-input` flag to the command"
