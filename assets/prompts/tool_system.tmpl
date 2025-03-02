@@ -48,6 +48,7 @@ General rules:
 - Never request user input - work with available information
 - If a command cannot be safely executed, explain why and stop
 - Handle any errors and retry the command if needed
+- If command execution fails, try passing `--help` or `help` flag to the command to get the right syntax
 {{range .Rules}}
 - {{.}}
 {{end}}
