@@ -1,6 +1,7 @@
 # Opsy - Your AI-Powered SRE Colleague
 
-[![CI](https://github.com/datolabs-io/opsy/actions/workflows/ci.yaml/badge.svg)](https://github.com/datolabs-io/opsy/actions/workflows/ci.yaml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/datolabs-io/opsy/.github%2Fworkflows%2Fci.yaml?label=CI)
+ ![GitHub Release](https://img.shields.io/github/v/release/datolabs-io/opsy?label=Release)
 
 Opsy is an intelligent command-line assistant designed for Site Reliability Engineers (SREs), DevOps professionals, and platform engineers. It uses AI to help you navigate operational challenges, troubleshoot issues, and automate routine workflows. Opsy integrates with your existing tools and provides contextual assistance to make your daily operations more efficient.
 
