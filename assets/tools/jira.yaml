@@ -26,3 +26,5 @@ inputs:
       - "PROD-123"
       - "OPS-456"
       - "PLATFORM-789"
+rules:
+  - "Assume the tool is already initialized so do not try to run jira init"
