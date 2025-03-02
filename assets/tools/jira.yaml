@@ -19,6 +19,20 @@ inputs:
       - "PROD-123"
       - "OPS-456"
       - "PLATFORM-789"
+  summary:
+    type: string
+    description: Summary of the issue. If not provided, will be generated based on the project
+    optional: true
+    examples:
+      - "Create a new feature"
+      - "Fix a bug"
+  description:
+    type: string
+    description: Description of the issue. If not provided, will be generated based on the project
+    optional: true
+    examples:
+      - "Extra details about the issue. Using markdown for formatting."
 rules:
-  - "Assume the tool is already initialized so do not try to run `jira init`"
-  - "Always pass `--no-input` flag to the command"
+  - 'The `jira` is already initialized so do not try to run `jira init`'
+  - 'Always pass `--no-input` flag to `jira` commands'
+  - 'If you need to include description for the issue, use `--body` flag'
