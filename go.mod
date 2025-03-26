@@ -1,4 +1,4 @@
-module github.com/datolabs-io/opsy
+module github.com/jjlakis/opsy
 
 go 1.24.0
 require (
