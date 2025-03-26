@@ -10,9 +10,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/datolabs-io/opsy/internal/agent"
-	"github.com/datolabs-io/opsy/internal/config"
-	"github.com/datolabs-io/opsy/internal/tool"
+	"github.com/jjlakis/opsy/internal/agent"
+	"github.com/jjlakis/opsy/internal/config"
+	"github.com/jjlakis/opsy/internal/tool"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

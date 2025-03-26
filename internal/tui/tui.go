@@ -5,14 +5,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/datolabs-io/opsy/internal/agent"
-	"github.com/datolabs-io/opsy/internal/config"
-	"github.com/datolabs-io/opsy/internal/thememanager"
-	"github.com/datolabs-io/opsy/internal/tool"
-	"github.com/datolabs-io/opsy/internal/tui/components/commandspane"
-	"github.com/datolabs-io/opsy/internal/tui/components/footer"
-	"github.com/datolabs-io/opsy/internal/tui/components/header"
-	"github.com/datolabs-io/opsy/internal/tui/components/messagespane"
+	"github.com/jjlakis/opsy/internal/agent"
+	"github.com/jjlakis/opsy/internal/config"
+	"github.com/jjlakis/opsy/internal/thememanager"
+	"github.com/jjlakis/opsy/internal/tool"
+	"github.com/jjlakis/opsy/internal/tui/components/commandspane"
+	"github.com/jjlakis/opsy/internal/tui/components/footer"
+	"github.com/jjlakis/opsy/internal/tui/components/header"
+	"github.com/jjlakis/opsy/internal/tui/components/messagespane"
 )
 
 // model is the main model for the TUI.

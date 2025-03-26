@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/datolabs-io/opsy/internal/config"
-	"github.com/datolabs-io/opsy/internal/thememanager"
+	"github.com/jjlakis/opsy/internal/config"
+	"github.com/jjlakis/opsy/internal/thememanager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

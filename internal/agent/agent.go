@@ -8,9 +8,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/datolabs-io/opsy/assets"
-	"github.com/datolabs-io/opsy/internal/config"
-	"github.com/datolabs-io/opsy/internal/tool"
+	"github.com/jjlakis/opsy/assets"
+	"github.com/jjlakis/opsy/internal/config"
+	"github.com/jjlakis/opsy/internal/tool"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
